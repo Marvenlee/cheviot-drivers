@@ -38,7 +38,6 @@
 
 extern int portid;
 extern int kq;
-extern int interrupt_fd;
 extern int sid;
 
 extern struct kevent ev;

@@ -88,7 +88,6 @@ bool pl011_uart_rx_ready(void);
 bool pl011_uart_tx_ready(void);
 char pl011_uart_read_byte(void);
 void pl011_uart_write_byte(char ch);
-void pl011_uart_interrupt_isr(int irq, struct InterruptAPI *api);
 void pl011_uart_interrupt_bottom_half(void);
 
 

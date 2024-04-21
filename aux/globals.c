@@ -35,7 +35,6 @@
 
 int portid;
 int kq;
-int interrupt_fd;
 int sid = 0;
 
 struct kevent ev;

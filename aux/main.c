@@ -49,12 +49,7 @@
  * run. Once that returns 0, indicating no other tasks are in a runnable
  * state then this main task (secretary) goes back to waiting for
  * incoming events.
- *
- * For the Raspberry Pi 1 we use the pl011 uart.
  */
-
-
-
 void taskmain(int argc, char *argv[])
 {
   struct fsreq req;
@@ -62,8 +57,8 @@ void taskmain(int argc, char *argv[])
   int nevents;
   msgid_t msgid;
   struct timespec timeout;
-
-  log_info("aux: main");
+  
+  log_info("Aux UART driver started");
    
   init(argc, argv);
 
@@ -73,11 +68,13 @@ void taskmain(int argc, char *argv[])
   taskcreate(uart_rx_task, NULL, 8092);
 
   timeout.tv_sec = 0;
-  timeout.tv_nsec = 50000000;
+  timeout.tv_nsec = AUX_KEVENT_TIMEOUT_NS;
     
   EV_SET(&setev, portid, EVFILT_MSGPORT, EV_ADD | EV_ENABLE, 0, 0, 0); 
   // EV_SET(&setev[1], interrupt_fd, EVFILT_IRQ, EV_ADD | EV_ENABLE, 0, 0, 0); 
   kevent(kq, &setev, 1,  NULL, 0, NULL);
+
+  aux_uart_unmask_interrupt();
 
   while (1) {
     errno = 0;
@@ -119,16 +116,11 @@ void taskmain(int argc, char *argv[])
       }
     }
 
-    // Read interrupt status register and wakeup appropriate rx and tx tasks
-#if 0  
-    if (nevents == 1 && ev.ident == interrupt_fd && ev.filter == EVFILT_IRQ)
-#endif    
-    {      
-      aux_uart_interrupt_bottom_half();  
-    }
-    
-    //  Yield until no other task is running.            
+    /* Check for interrupts and awaken Tx and/or Rx tasks
+     * Yield until no other task is running. */   
+    aux_uart_handle_interrupt();      
     while (taskyield() != 0);
+    aux_uart_unmask_interrupt();
   }
 
   exit(0);

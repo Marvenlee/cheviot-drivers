@@ -111,18 +111,6 @@ int pl011_uart_configure(void)
 }
 
 
-
-/* @brief   PL011 UART Interrupt Service Routine
- *
- */
-void pl011_uart_interrupt_isr(int irq, struct InterruptAPI *api)
-{    
-#ifdef USE_INTERRUPTS
-  api->MaskInterrupt(PL011_UART_IRQ);
-  api->EventNotifyFromISR(api, NOTE_INT | (NOTE_IRQMASK & irq));  
-#endif
-}
-
 /* @brief   PL011 UART Bottom-Half interrupt handling
  */
 void pl011_uart_interrupt_bottom_half(void)

@@ -31,11 +31,9 @@
 #include <machine/cheviot_hal.h>
 
 
-/*
- */
-#define NMSG_BACKLOG 		3          // 1 read, 1 write and 1 ioctl/termios/synchronous command
-#define POLL_TIMEOUT 		100000
-
+// Constants
+#define NMSG_BACKLOG 		                3   // 1 read, 1 write and 1 ioctl/termios/synchronous command
+#define AUX_KEVENT_TIMEOUT_NS   500000000   // Timeout for kevent, 500ms
 
 /*
  * Aux driver Configuration settings
@@ -87,9 +85,8 @@ bool aux_uart_read_ready(void);
 bool aux_uart_write_ready(void);
 char aux_uart_read_byte(void);
 void aux_uart_write_byte(char ch);
-void aux_uart_interrupt_isr(int irq, struct InterruptAPI *api);
-void aux_uart_interrupt_bottom_half(void);
-
+void aux_uart_handle_interrupt(void);
+void aux_uart_unmask_interrupt(void);
 
 #endif
 

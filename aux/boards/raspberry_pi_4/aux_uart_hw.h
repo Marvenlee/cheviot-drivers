@@ -17,18 +17,35 @@
 #ifndef BOARDS_RASPBERRY_PI_4_AUX_UART_H
 #define BOARDS_RASPBERRY_PI_4_AUX_UART_H
 
-
 #include <stdint.h>
 #include <stdbool.h>
 #include "gpio.h"
 
-#define AUX_UART_BAUD           115200
 
 // Constants and macros
-//#define AUX_UART_IRQ            29
+#define EVENT_AUX_INT   1       // Event bit to set on an interrupt occuring
+
+#define AUX_UART_BAUD           115200
+#define AUX_UART_IRQ            (29 + 96)
 #define AUX_UART_GPIO_ALT_FN    FN5         // Use alternate function FN5 for GPIO 14 and 15
 #define AUX_UART_CLOCK          500000000
 #define AUX_MU_BAUD(baud)       ((AUX_UART_CLOCK/(baud*8))-1)
+
+#define IER_TX_INT_EN           (1<<0)
+#define IER_RX_INT_EN           (1<<1)
+
+#define IIR_RX                  (1<<2)  // On read indicates Rx FIFO has data, on write clears Rx FIFO
+#define IIR_TX                  (1<<1)  // On read indicates Tx FIFO is empty, on write clears Tx FIFO
+#define IIR_PENDING             (1<<0)
+
+#define CNTL_RX_EN              (1<<0)
+#define CNTL_TX_EN              (1<<1)
+
+#define LCR_8_BIT               (1<<0)
+#define LCR_7_BIT               (0<<0)
+
+#define LSR_RX_READY            (1<<0)
+#define LSR_TX_EMPTY            (1<<5)
 
 
 /* @brief   Aux mini-UART registers of the BCM2835
@@ -51,21 +68,6 @@ struct bcm2711_aux_registers
   uint32_t mu_baud_reg;
 };
 
-/* 
- * Register bit definitions
- */ 
-enum {
-  AUX_CNTL_RXEN	    = 0x01, /* Rx enable */
-  AUX_CNTL_TXEN	    = 0x02, /* Tx enable */
-  AUX_CNTL_AUTORTS  = 0x04, /* RTS set by Rx fill level */
-  AUX_CNTL_AUTOCTS	= 0x08, /* CTS */
-  AUX_CNTL_RTS4	    = 0x30, /* RTS set until 4 chars left */
-  AUX_CNTL_RTS3	    = 0x00, /* RTS set until 3 chars left */
-  AUX_CNTL_RTS2	    = 0x10, /* RTS set until 2 chars left */
-  AUX_CNTL_RTS1	    = 0x20, /* RTS set until 1 char left */
-  AUX_CNTL_RTSINV	  = 0x40, /* Invert RTS polarity */
-  AUX_CNTL_CTSINV	  = 0x80  /* Invert CTS polarity */
-};
 
 
 #endif

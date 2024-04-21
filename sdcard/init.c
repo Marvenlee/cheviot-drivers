@@ -158,11 +158,12 @@ int enable_power_and_clocks(void)
  */
 int map_io_registers(void)
 {
-  emmc_base = (uint32_t)virtualallocphys(0x68000000, 8092, PROT_READ | PROT_WRITE  | CACHE_UNCACHEABLE,
+  // FIXME: Define virtual addresses and sizes in header
+  emmc_base = (uint32_t)virtualallocphys((void *)0x68000000, 8092, PROT_READ | PROT_WRITE  | CACHE_UNCACHEABLE,
                                          (void *)EMMC_BASE);
                                          
   // mbox_base is io registers
-  mbox_base = (uint32_t)virtualallocphys(0x69000000, 8092, PROT_READ | PROT_WRITE | CACHE_UNCACHEABLE,
+  mbox_base = (uint32_t)virtualallocphys((void *)0x69000000, 8092, PROT_READ | PROT_WRITE | CACHE_UNCACHEABLE,
                                          (void *)MBOX_BASE);
   mbox_base += MBOX_BASE_OFFSET;
 
