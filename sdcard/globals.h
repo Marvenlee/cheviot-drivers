@@ -18,6 +18,7 @@ extern struct block_device *bdev;
 
 extern uint8_t bootsector[512];
 extern uint8_t *buf;
+extern uint8_t *buf_phys;
 
 extern int kq;
 

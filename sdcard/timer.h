@@ -52,8 +52,9 @@ int compare_timer(struct timer_wait * tw);
   do {                                                                         \
     register_timer(&tw, usec);                                                 \
     do {                                                                       \
-      if (stop_if_true)                                                        \
+      if (stop_if_true) {                                                      \
         break;                                                                 \
+      }                                                                        \
     } while (!compare_timer(&tw));                                             \
   } while (0);
 

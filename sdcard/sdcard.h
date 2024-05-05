@@ -31,8 +31,10 @@
 
 /*
  */
-#define NMSG_BACKLOG 				1
-#define BUF_SZ    			 4096      // Buffer size used to read and write
+ 
+#define SDCARD_TASK_PRIORITY  22        // Use SCHED_RR
+#define NMSG_BACKLOG 				  1
+#define BUF_SZ    			      4096      // Buffer size used to read and write
 
 typedef uint64_t  block64_t;
 

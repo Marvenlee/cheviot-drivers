@@ -3,6 +3,10 @@ sbin_PROGRAMS = sdcard
 
 sdcard_SOURCES = \
   emmc.c \
+  emmc_init.c \
+  emmc_misc.c \
+  emmc_rw.c \
+  emmc_globals.c \
   globals.c \
   init.c \
   main.c \

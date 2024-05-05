@@ -98,8 +98,10 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(sbindir)"
 PROGRAMS = $(sbin_PROGRAMS)
-am_sdcard_OBJECTS = emmc.$(OBJEXT) globals.$(OBJEXT) init.$(OBJEXT) \
-	main.$(OBJEXT) mmio.$(OBJEXT) timer.$(OBJEXT)
+am_sdcard_OBJECTS = emmc.$(OBJEXT) emmc_init.$(OBJEXT) \
+	emmc_misc.$(OBJEXT) emmc_rw.$(OBJEXT) emmc_globals.$(OBJEXT) \
+	globals.$(OBJEXT) init.$(OBJEXT) main.$(OBJEXT) mmio.$(OBJEXT) \
+	timer.$(OBJEXT)
 sdcard_OBJECTS = $(am_sdcard_OBJECTS)
 sdcard_DEPENDENCIES =
 AM_V_P = $(am__v_P_@AM_V@)
@@ -117,7 +119,9 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/emmc.Po ./$(DEPDIR)/globals.Po \
+am__depfiles_remade = ./$(DEPDIR)/emmc.Po ./$(DEPDIR)/emmc_globals.Po \
+	./$(DEPDIR)/emmc_init.Po ./$(DEPDIR)/emmc_misc.Po \
+	./$(DEPDIR)/emmc_rw.Po ./$(DEPDIR)/globals.Po \
 	./$(DEPDIR)/init.Po ./$(DEPDIR)/main.Po ./$(DEPDIR)/mmio.Po \
 	./$(DEPDIR)/timer.Po
 am__mv = mv -f
@@ -253,6 +257,10 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 sdcard_SOURCES = \
   emmc.c \
+  emmc_init.c \
+  emmc_misc.c \
+  emmc_rw.c \
+  emmc_globals.c \
   globals.c \
   init.c \
   main.c \
@@ -353,6 +361,10 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/emmc.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/emmc_globals.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/emmc_init.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/emmc_misc.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/emmc_rw.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/globals.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/init.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@ # am--include-marker
@@ -508,6 +520,10 @@ clean-am: clean-generic clean-sbinPROGRAMS mostlyclean-am
 
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/emmc.Po
+	-rm -f ./$(DEPDIR)/emmc_globals.Po
+	-rm -f ./$(DEPDIR)/emmc_init.Po
+	-rm -f ./$(DEPDIR)/emmc_misc.Po
+	-rm -f ./$(DEPDIR)/emmc_rw.Po
 	-rm -f ./$(DEPDIR)/globals.Po
 	-rm -f ./$(DEPDIR)/init.Po
 	-rm -f ./$(DEPDIR)/main.Po
@@ -559,6 +575,10 @@ installcheck-am:
 
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/emmc.Po
+	-rm -f ./$(DEPDIR)/emmc_globals.Po
+	-rm -f ./$(DEPDIR)/emmc_init.Po
+	-rm -f ./$(DEPDIR)/emmc_misc.Po
+	-rm -f ./$(DEPDIR)/emmc_rw.Po
 	-rm -f ./$(DEPDIR)/globals.Po
 	-rm -f ./$(DEPDIR)/init.Po
 	-rm -f ./$(DEPDIR)/main.Po

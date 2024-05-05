@@ -87,11 +87,17 @@ int compare_timer(struct timer_wait * tw)
 
 	if (elapsed) {
 		log_warn("timeout expired: %d", (int)tw->timeout_usec);
-	  log_warn("diff: sec:%d, nsec:%6d", (int)diff_ts.tv_sec, (int)diff_ts.tv_nsec);
-	  log_warn("now: sec:%d, nsec:%6d", (int)now.tv_sec, (int)now.tv_nsec);
-	  log_warn("exp: sec:%d, nsec:%6d\n", (int)tw->expire_ts.tv_sec, (int)tw->expire_ts.tv_nsec);
+	  log_warn("diff: sec:%d, nsec:%06d", (int)diff_ts.tv_sec, (int)diff_ts.tv_nsec);
+	  log_warn("now: sec:%d, nsec:%06d", (int)now.tv_sec, (int)now.tv_nsec);
+	  log_warn("exp: sec:%d, nsec:%06d\n", (int)tw->expire_ts.tv_sec, (int)tw->expire_ts.tv_nsec);
 		return 1;
 	} else {
+	  if (diff_ts.tv_nsec > 2000000) {
+	    log_warn("compare > 2ms: sec:%d, nsec:%06d, timeout: %d", (int)diff_ts.tv_sec,
+	          (int)diff_ts.tv_nsec, (int)tw->timeout_usec);
+
+	  }
+	
 		return 0;
 	}
 }

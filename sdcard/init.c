@@ -1,4 +1,4 @@
-#define LOG_LEVEL_WARN
+#define LOG_LEVEL_INFO
 
 #include "sdcard.h"
 #include "globals.h"
@@ -21,7 +21,7 @@
 #include "peripheral_base.h"
 #include <sys/rpi_mailbox.h>
 #include <sys/rpi_gpio.h>
-
+#include <sys/sched.h>
 
 /* @brief   Initialize the sdcard device driver
  *
@@ -76,12 +76,18 @@ void init(int argc, char *argv[])
     exit(-1);
   }
 
-  buf = virtualalloc(NULL, BUF_SZ, PROT_READ | PROT_WRITE | CACHE_UNCACHEABLE);
+  buf = virtualalloc(NULL, BUF_SZ, PROT_READ | PROT_WRITE);
 
   if (buf == NULL) {
     log_error("failed to create 4k buffer");
     exit(-1);
-  }  
+  }
+  
+  buf_phys = virtualtophysaddr(buf);
+  
+  log_info ("buf: %08x, buf_phys:%08x", (uint32_t)buf, (uint32_t)buf_phys);
+  
+  _swi_setschedparams(SCHED_RR, SDCARD_TASK_PRIORITY);
 }
 
 

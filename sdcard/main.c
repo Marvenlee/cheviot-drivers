@@ -150,6 +150,11 @@ void sdcard_write(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
   offset = req->args.write.offset;
   remaining = req->args.write.sz;  
   
+  #if 1  // FIXME: Writes disabled
+    replymsg(unit->portid, msgid, remaining, NULL, 0);
+    return;
+  #endif
+  
   while (remaining > 0) {
       block_no = ((off64_t)unit->start + (offset / 512));
       chunk_start = offset % 512;
