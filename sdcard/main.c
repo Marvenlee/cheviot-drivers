@@ -22,6 +22,7 @@
 #include <sys/rpi_gpio.h>
 #include <time.h>
 #include <sys/time.h>
+#include <sys/param.h>
 
 /* @brief   The SDCard block device driver
  *
@@ -87,8 +88,11 @@ int main(int argc, char *argv[])
  * @param   req, filesystem request message header
  *
  * This assumes blocks are 512 bytes in size 
+ * sdcard_read() currently implements a simple BUF_SZ (4096 byte) cache.
+ * Read operations read a full BUF_SZ into the buffer.
+ *
  * TODO: Check for block alignment of offset and size
- * TODO: Check within range of unit
+ * TODO: Check within range of unit 
  */
 void sdcard_read(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
 {
@@ -106,11 +110,15 @@ void sdcard_read(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
   remaining = req->args.read.sz;  
 	  
   while (remaining > 0) {
-      block_no = ((off64_t)unit->start + (offset / 512));
-      chunk_start = offset % 512;
-      left = 512 - chunk_start;
+      block_no = ((off64_t)unit->start + (rounddown(offset, BUF_SZ)) / 512 );
+      chunk_start = offset % BUF_SZ;
+      left = BUF_SZ - chunk_start;
 
-      sc = sd_read(bdev, buf, 512, block_no);      
+      if (buf_valid != true || block_no != buf_start_block_no) {
+        sc = sd_read(bdev, buf, BUF_SZ, block_no);      
+        buf_start_block_no = block_no;
+        buf_valid = true;
+      }
 
       chunk_size = (left < remaining) ? left : remaining;
       
@@ -120,7 +128,6 @@ void sdcard_read(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
       offset += chunk_size;
       remaining -= chunk_size;
   }
-
 
   replymsg(unit->portid, msgid, xfered, NULL, 0);
 }
@@ -149,6 +156,8 @@ void sdcard_write(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
   xfered = 0;
   offset = req->args.write.offset;
   remaining = req->args.write.sz;  
+
+  buf_valid = false;
   
   #if 1  // FIXME: Writes disabled
     replymsg(unit->portid, msgid, remaining, NULL, 0);

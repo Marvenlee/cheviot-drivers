@@ -17,6 +17,10 @@ struct block_device *bdev;
 uint8_t bootsector[512];        // buffer to read bootsector into
 uint8_t *buf;
 uint8_t *buf_phys;
+
+bool buf_valid = false;
+off64_t buf_start_block_no = 0;
+
 int kq;                         // kqueue handle
 
 struct Config config;

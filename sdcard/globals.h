@@ -20,6 +20,9 @@ extern uint8_t bootsector[512];
 extern uint8_t *buf;
 extern uint8_t *buf_phys;
 
+extern bool buf_valid;
+extern off64_t buf_start_block_no;
+
 extern int kq;
 
 extern struct Config config;
