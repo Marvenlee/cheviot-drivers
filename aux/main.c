@@ -71,7 +71,6 @@ void taskmain(int argc, char *argv[])
   timeout.tv_nsec = AUX_KEVENT_TIMEOUT_NS;
     
   EV_SET(&setev, portid, EVFILT_MSGPORT, EV_ADD | EV_ENABLE, 0, 0, 0); 
-  // EV_SET(&setev[1], interrupt_fd, EVFILT_IRQ, EV_ADD | EV_ENABLE, 0, 0, 0); 
   kevent(kq, &setev, 1,  NULL, 0, NULL);
 
   aux_uart_unmask_interrupt();
@@ -168,9 +167,6 @@ void cmd_read(msgid_t msgid, struct fsreq *req)
   read_pending = true;
   read_msgid = msgid;
   memcpy (&read_fsreq, req, sizeof read_fsreq);
-  
-//  log_info("aux: read nbytes:%u", read_fsreq.args.read.sz);
-  
   taskwakeup (&read_cmd_rendez);
 }
 
@@ -378,11 +374,10 @@ void uart_rx_task(void *arg)
 {
   uint32_t flags;
   uint8_t ch;
-  int ready;
   
   while(1)
   {
-    while (rx_free_sz == 0 || (ready = aux_uart_read_ready()) == false) {
+    while (rx_free_sz == 0 || aux_uart_read_ready() == false) {
       tasksleep (&rx_rendez);
     }
 
@@ -423,6 +418,21 @@ int add_to_rx_queue(uint8_t ch)
 /*
  *
  */
+int rem_from_rx_queue(void)
+{
+  if (rx_sz > 0) {
+    rx_sz --;
+    rx_free_head = (rx_free_head - 1) % sizeof rx_buf;
+    rx_free_sz++;    
+  }
+  
+  return 0;
+}
+
+
+/*
+ *
+ */
 void line_discipline(uint8_t ch)
 {
   int last_char;  
@@ -430,7 +440,8 @@ void line_discipline(uint8_t ch)
   if ((ch == termios.c_cc[VEOL] || ch == termios.c_cc[VEOL2]) && (termios.c_lflag & ECHONL)) {        
       echo(ch);    
   } else {       
-    if (!(ch == termios.c_cc[VEOL] || ch == termios.c_cc[VEOL2]) && (termios.c_lflag & ECHO)) {
+    if (!(ch == termios.c_cc[VEOL] || ch == termios.c_cc[VEOL2] || ch == '\b' || ch == 0x7F)
+          && (termios.c_lflag & ECHO)) {
       echo(ch);
     }
   }
@@ -442,13 +453,14 @@ void line_discipline(uint8_t ch)
     } else if (ch == termios.c_cc[VEOL2]) {
       add_to_rx_queue('\n');
       line_cnt++;
-    } else if (ch == termios.c_cc[VERASE]) {
+    } else if (ch == '\b' || ch == 0x7F) {
       if (rx_sz > 0) {
-        last_char = rx_buf[rx_sz-1];            
+        last_char = rx_buf[(rx_head + rx_sz - 1) % sizeof rx_buf];
         if (last_char != termios.c_cc[VEOL] && last_char != termios.c_cc[VEOL2]) {
-          rx_sz --;
-          rx_free_head = (rx_free_head - 1) % sizeof rx_buf;
-          rx_free_sz++;
+          rem_from_rx_queue();
+          echo('\b');
+          echo(' ');
+          echo('\b');
         }
       }
     } else {      

@@ -51,7 +51,7 @@ void init (int argc, char *argv[])
 	termios.c_cc[VEOF]   = 0x04;	
 	termios.c_cc[VEOL]   = '\n';
 	termios.c_cc[VEOL2]  = '\r';
-	termios.c_cc[VERASE] = 0x7f;
+	termios.c_cc[VERASE] = 0x7F;
 	termios.c_cc[VKILL]  = 0x40;
 
   termios.c_ispeed = 115200;
