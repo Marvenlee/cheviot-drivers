@@ -30,6 +30,11 @@
  * Broadcom BCM2835 Peripherals Guide
  */
 
+/*
+ * This file and associated emmc source and header files are derived from
+ * John Cronin's original sources and modified to run on CheviotOS.
+ */
+
 //#define NDEBUG
 //#define EMMC_DEBUG
 #define LOG_LEVEL_INFO
@@ -62,7 +67,7 @@ void sd_issue_command_int(struct emmc_block_dev *dev, uint32_t cmd_reg,
   // This is as per HCSS 3.7.1.1/3.7.2.2
   // Check Command Inhibit
   while (mmio_read(emmc_base + EMMC_STATUS) & 0x1) {
-    delay_microsecs(1);
+    delay_microsecs(1);  // FIXME: busy wait
   }
   // Is the command with busy?
   if ((cmd_reg & SD_CMD_RSPNS_TYPE_MASK) == SD_CMD_RSPNS_TYPE_48B) {
@@ -73,8 +78,9 @@ void sd_issue_command_int(struct emmc_block_dev *dev, uint32_t cmd_reg,
       // Not an abort command
 
       // Wait for the data line to be free
-      while (mmio_read(emmc_base + EMMC_STATUS) & 0x2)
-        delay_microsecs(1);
+      while (mmio_read(emmc_base + EMMC_STATUS) & 0x2) {
+        delay_microsecs(1); // FIXME: busy wait
+      }
     }
   }
 
@@ -179,7 +185,6 @@ void sd_issue_command_int(struct emmc_block_dev *dev, uint32_t cmd_reg,
       size_t cur_byte_no = 0;
       if (is_write) {
         while (cur_byte_no < dev->block_size) {
-          //uint32_t data = read_word((uint8_t *)cur_buf_addr, 0);
           uint32_t data = *cur_buf_addr;          
           mmio_write(emmc_base + EMMC_DATA, data);
           cur_byte_no += 4;
@@ -189,7 +194,6 @@ void sd_issue_command_int(struct emmc_block_dev *dev, uint32_t cmd_reg,
         while (cur_byte_no < dev->block_size) {
           uint32_t data = mmio_read(emmc_base + EMMC_DATA);
           *cur_buf_addr = data;
-          //write_word(data, (uint8_t *)cur_buf_addr, 0);          
           cur_byte_no += 4;
           cur_buf_addr++;
         }

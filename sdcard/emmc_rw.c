@@ -30,8 +30,14 @@
  * Broadcom BCM2835 Peripherals Guide
  */
 
+/*
+ * This file and associated emmc source and header files are derived from
+ * John Cronin's original sources and modified to run on CheviotOS.
+ */
+
 //#define NDEBUG
 //#define EMMC_DEBUG
+//#define ENABLE_READ_BENCHMARK_LOGGING
 #define LOG_LEVEL_INFO
 
 #include <stdint.h>
@@ -56,25 +62,30 @@
  */
 int sd_read(struct block_device *dev, uint8_t *buf, size_t buf_size, uint32_t block_no)
 {
+#ifdef ENABLE_READ_BENCHMARK_LOGGING
 	struct timespec startts, endts, diffts;
+#endif
 	
   // Check the status of the card
   struct emmc_block_dev *edev = (struct emmc_block_dev *)dev;
   if (sd_ensure_data_mode(edev) != 0)
     return -1;
 
-//  clock_gettime(CLOCK_MONOTONIC_RAW, &startts);  
-  
+#ifdef ENABLE_READ_BENCHMARK_LOGGING
+  clock_gettime(CLOCK_MONOTONIC_RAW, &startts);  
+#endif
+
   if (sd_do_data_command(edev, 0, buf, buf_size, block_no) < 0) {
     log_error("failed to read block %d ***", (uint32_t)block_no);
     return -1;
   }
 
-//  clock_gettime(CLOCK_MONOTONIC_RAW, &endts);  
-//  diff_timespec(&diffts, &endts, &startts);
-  	
-//  log_info("read from block %u, sz:%u", block_no, buf_size);
-//  log_info("time = %u.%06u", (uint32_t)diffts.tv_sec, (uint32_t)diffts.tv_nsec/1000);
+#ifdef ENABLE_READ_BENCHMARK_LOGGING
+  clock_gettime(CLOCK_MONOTONIC_RAW, &endts);  
+  diff_timespec(&diffts, &endts, &startts);  	
+  log_info("read from block %u, sz:%u", block_no, buf_size);
+  log_info("time = %u.%06u", (uint32_t)diffts.tv_sec, (uint32_t)diffts.tv_nsec/1000);
+#endif
   
   return buf_size;
 }
@@ -92,13 +103,11 @@ int sd_write(struct block_device *dev, uint8_t *buf, size_t buf_size, uint32_t b
 
   log_info("sd_write() block %d, buf:%08x, sz:%d", (uint32_t)block_no, (uint32_t)buf, buf_size);
 
-#if 0
   if (sd_do_data_command(edev, 1, buf, buf_size, block_no) < 0)
   {
   	log_error("failed to write block %d ***", (uint32_t)block_no);
     return -1;
 	}
-#endif
 	
   return buf_size;
 }

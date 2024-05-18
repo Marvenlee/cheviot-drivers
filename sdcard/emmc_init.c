@@ -30,6 +30,11 @@
  * Broadcom BCM2835 Peripherals Guide
  */
 
+/*
+ * This file and associated emmc source and header files are derived from
+ * John Cronin's original sources and modified to run on CheviotOS.
+ */
+
 //#define NDEBUG
 //#define EMMC_DEBUG
 #define LOG_LEVEL_DEBUG
@@ -154,7 +159,7 @@ int sd_card_init(struct block_device **dev)
   uint32_t base_clock = sd_get_base_clock_hz();
   if (base_clock == 0) {
     log_info("assuming clock rate to be 100MHz");
-    base_clock = 100000000;
+    base_clock = SD_RPI_BASE_CLOCK;
   }
 
   // Set clock rate to something slow
@@ -167,13 +172,9 @@ int sd_card_init(struct block_device **dev)
     log_info("unable to get a valid clock divider for ID frequency");
     return -1;
   }
-
-
 	
-	// MG: FIXME: clock divider
-
 	control1 &= ~0xffe0;		// Clear old setting + clock generator select	
-//	control1 &= ~(0x3FF << 6);
+  //	control1 &= ~(0x3FF << 6);
 	control1 |= f_id;
 
 	// was not masked out and or'd with (7 << 16) in original driver

@@ -30,6 +30,11 @@
  * Broadcom BCM2835 Peripherals Guide
  */
 
+/*
+ * This file and associated emmc source and header files are derived from
+ * John Cronin's original sources and modified to run on CheviotOS.
+ */
+
 #ifndef EMMC_INTERNAL_H
 #define EMMC_INTERNAL_H
 
@@ -63,18 +68,23 @@
 #define SD_4BIT_DATA
 
 // SD Clock Frequencies (in Hz)
-#define SD_CLOCK_ID 400000
-#define SD_CLOCK_NORMAL 25000000
-#define SD_CLOCK_HIGH 50000000
-#define SD_CLOCK_100 100000000
-#define SD_CLOCK_208 208000000
+
+#define SD_CLOCK_ID         400000
+#define SD_RPI_BASE_CLOCK 41666666
+#define SD_CLOCK_NORMAL   25000000
+
+#define BASE_CLOCK_RPI_DEFAULT        0
+#define BASE_CLOCK_EMMC_CAPABILITIES  1
+#define BASE_CLOCK_RPI_MAILBOX        2
+
+#define BASE_CLOCK_SRC    BASE_CLOCK_RPI_DEFAULT
 
 // Enable SDXC maximum performance mode
 // Requires 150 mA power so disabled on the RPi for now
 //#define SDXC_MAXIMUM_PERFORMANCE
 
 // Enable SDMA support
-// #define SDMA_SUPPORT
+//#define SDMA_SUPPORT
 
 // Enable card interrupts
 //#define SD_CARD_INTERRUPTS
@@ -334,6 +344,18 @@ extern size_t sd_acommands_sz;
 
 int sd_read(struct block_device *, uint8_t *, size_t buf_size, uint32_t);
 int sd_write(struct block_device *, uint8_t *, size_t buf_size, uint32_t);
+int sd_do_data_command(struct emmc_block_dev *edev, int is_write,
+                              uint8_t *buf, size_t buf_size,
+                              uint32_t block_no);                              
+int sd_ensure_data_mode(struct emmc_block_dev *edev);
+int sd_switch_clock_rate(uint32_t base_clock, uint32_t target_rate);
+uint32_t sd_get_clock_divider(uint32_t base_clock, uint32_t freq);
+int sd_reset_cmd(void);
+int sd_reset_dat(void);
+void sd_issue_command(struct emmc_block_dev *dev, uint32_t command,
+                             uint32_t argument, useconds_t timeout);
+uint32_t sd_get_base_clock_hz(void);
 
 
 #endif
+

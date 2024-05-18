@@ -30,6 +30,11 @@
  * Broadcom BCM2835 Peripherals Guide
  */
 
+/*
+ * This file and associated emmc source and header files are derived from
+ * John Cronin's original sources and modified to run on CheviotOS.
+ */
+
 //#define NDEBUG
 //#define EMMC_DEBUG
 #define LOG_LEVEL_DEBUG
