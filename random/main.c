@@ -109,7 +109,7 @@ void cmd_read(msgid_t msgid, struct fsreq *req)
 	}
 
 	for (int t=0; t<words; t++) {
-		trng_data_read(&random_buf);
+		trng_data_read(random_buf);
 	}      	
       	
   replymsg(portid, msgid, nbytes, random_buf, nbytes);
