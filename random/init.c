@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#define LOG_LEVEL_WARN
+
 #include <dirent.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -38,9 +40,7 @@
  *
  */
 void init (int argc, char *argv[])
-{
-  log_info("random: init");
-		
+{	
   if (process_args(argc, argv) != 0) {
     exit(EXIT_FAILURE);
   }
@@ -73,7 +73,7 @@ int process_args(int argc, char *argv[])
 
   config.uid = 0;
   config.gid = 0;
-  config.dev = -1;
+  config.dev = 2345;
   config.mode = 0777 | S_IFCHR;
   
   if (argc <= 1) {

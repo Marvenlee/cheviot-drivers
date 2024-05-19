@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#define LOG_LEVEL_WARN
+
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
