@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define LOG_LEVEL_WARN
+#define LOG_LEVEL_ERROR
 
 #include <dirent.h>
 #include <errno.h>
@@ -49,6 +49,8 @@ void main(int argc, char *argv[])
   int nevents;
   msgid_t msgid;
   struct timespec timeout;
+
+  log_info("random driver start");
    
   init(argc, argv);
 
@@ -75,14 +77,14 @@ void main(int argc, char *argv[])
             break;
 
           default:
-            log_warn("random: unknown command: %d", req.cmd);
+            log_warn("unknown command: %d", req.cmd);
             replymsg(portid, msgid, -ENOTSUP, NULL, 0);
             break;
         }
       }      
       
       if (sc != 0) {
-        log_error("random: getmsg sc=%d %s", sc, strerror(errno));
+        log_error("getmsg sc=%d %s", sc, strerror(errno));
         exit(EXIT_FAILURE);
       }
     }
@@ -98,7 +100,7 @@ void main(int argc, char *argv[])
 void cmd_read(msgid_t msgid, struct fsreq *req)
 {
 	size_t nbytes;
-	int words;
+	size_t words;
 	
  	nbytes = (sizeof random_buf < req->args.read.sz) ? sizeof random_buf : req->args.read.sz;
 
@@ -108,10 +110,10 @@ void cmd_read(msgid_t msgid, struct fsreq *req)
 		words = sizeof random_buf / sizeof (uint32_t);
 	}
 
-	for (int t=0; t<words; t++) {
-		trng_data_read(random_buf);
-	}      	
-      	
+	words = trng_data_read(random_buf, words);
+
+  nbytes = words * sizeof(uint32_t);
+        	
   replymsg(portid, msgid, nbytes, random_buf, nbytes);
 }
 

@@ -31,6 +31,7 @@
 #include <sys/debug.h>
 #include <sys/syscalls.h>
 #include <sys/event.h>
+#include <sys/panic.h>
 #include "globals.h"
 #include "null.h"
 
@@ -41,19 +42,17 @@
 void init (int argc, char *argv[])
 {	
   if (process_args(argc, argv) != 0) {
-    exit(EXIT_FAILURE);
+    panic("failed to process command line arguments");
   }
 
   if (mount_device() < 0) {
-    log_error("null: mount device failed, exiting");
-    exit(EXIT_FAILURE);
+    panic("mount device failed");
   }
 
   kq = kqueue();
   
   if (kq < 0) {
-    log_error("null: create kqueue for serial failed");
-    exit(EXIT_FAILURE);
+    panic("create kqueue failed");
   }
 }
 
@@ -67,29 +66,30 @@ int process_args(int argc, char *argv[])
 
   config.uid = 0;
   config.gid = 0;
-  config.dev = 1234;
-  config.mode = 0777;
+  config.dev = -1;
+  config.mode = 0777 | S_IFCHR;
   
-  if (argc <= 1) {
+  if (argc < 1) {
+    log_error("no command line arguments, argc:%d", argc);
     return -1;
   }
   
   while ((c = getopt(argc, argv, "u:g:m:d:")) != -1) {
     switch (c) {
     case 'u':
-      config.uid = atoi(optarg);
+      config.uid = strtoul(optarg, NULL, 0);
       break;
 
     case 'g':
-      config.gid = atoi(optarg);
+      config.gid = strtoul(optarg, NULL, 0);
       break;
 
     case 'm':
-      config.mode = atoi(optarg);
+      config.mode = strtoul(optarg, NULL, 0);
       break;
 
     case 'd':
-      config.dev = atoi(optarg);
+      config.dev = strtoul(optarg, NULL, 0);
       break;
       
     default:
@@ -98,9 +98,10 @@ int process_args(int argc, char *argv[])
   }
 
   if (optind >= argc) {
-    return -1;
+    panic("missing mount pathname");
   }
 
+  strncpy(config.pathname, argv[optind], sizeof config.pathname);
   return 0;
 }
 
@@ -111,6 +112,8 @@ int process_args(int argc, char *argv[])
 int mount_device(void)
 {
   struct stat mnt_stat;
+
+  log_info("mounting device");
 
   mnt_stat.st_dev = config.dev;
   mnt_stat.st_ino = 0;
@@ -123,7 +126,7 @@ int mount_device(void)
   mnt_stat.st_size = 0;
   mnt_stat.st_blocks = 0;
   
-  portid = createmsgport("/dev/null", 0, &mnt_stat, NMSG_BACKLOG);
+  portid = createmsgport(config.pathname, 0, &mnt_stat, NMSG_BACKLOG);
   
   if (portid < 0) {
     return -1;

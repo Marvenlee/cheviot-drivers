@@ -108,23 +108,23 @@ int process_args(int argc, char *argv[])
   while ((c = getopt(argc, argv, "u:g:m:d:b:s:pf")) != -1) {
     switch (c) {
     case 'u':
-      config.uid = atoi(optarg);
+      config.uid = strtoul(optarg, NULL, 0);
       break;
 
     case 'g':
-      config.gid = atoi(optarg);
+      config.gid = strtoul(optarg, NULL, 0);
       break;
 
     case 'm':
-      config.mode = atoi(optarg);
+      config.mode = strtoul(optarg, NULL, 0);
       break;
 		      
     case 'd':
-      config.dev = atoi(optarg);
+      config.dev = strtoul(optarg, NULL, 0);
       break;
 
     case 'b':
-      config.baud = atoi(optarg);
+      config.baud = strtoul(optarg, NULL, 0);
       break;
     
     case 's':

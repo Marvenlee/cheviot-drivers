@@ -29,6 +29,7 @@
 #include <sys/debug.h>
 #include <sys/syscalls.h>
 #include <sys/event.h>
+#include <sys/panic.h>
 #include "aux_uart.h"
 #include "globals.h"
 
@@ -112,23 +113,23 @@ int process_args(int argc, char *argv[])
   while ((c = getopt(argc, argv, "u:g:m:d:b:s")) != -1) {
     switch (c) {
     case 'u':
-      config.uid = atoi(optarg);
+      config.uid = strtoul(optarg, NULL, 0);
       break;
 
     case 'g':
-      config.gid = atoi(optarg);
+      config.gid = strtoul(optarg, NULL, 0);
       break;
 
     case 'm':
-      config.mode = atoi(optarg);
+      config.mode = strtoul(optarg, NULL, 0);
       break;
 
     case 'd':
-      config.dev = atoi(optarg);
+      config.dev = strtoul(optarg, NULL, 0);
       break;
 
     case 'b':
-      config.baud = atoi(optarg);
+      config.baud = strtoul(optarg, NULL, 0);
       break;
     
     case 's':
@@ -159,7 +160,7 @@ int process_args(int argc, char *argv[])
   }
 
   if (optind >= argc) {
-    return -1;
+    panic("missing mount pathname");
   }
 
   strncpy(config.pathname, argv[optind], sizeof config.pathname);
@@ -176,7 +177,7 @@ int mount_device(void)
 
   mnt_stat.st_dev = config.dev;
   mnt_stat.st_ino = 0;
-  mnt_stat.st_mode = config.mode | S_IFCHR;
+  mnt_stat.st_mode = S_IFCHR | (config.mode & 0777);
   mnt_stat.st_uid = config.uid;
   mnt_stat.st_gid = config.gid;
   mnt_stat.st_blksize = 0;

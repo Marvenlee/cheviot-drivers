@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define LOG_LEVEL_WARN
+#define LOG_LEVEL_INFO
 
 #include <dirent.h>
 #include <errno.h>
@@ -31,41 +31,43 @@
 #include <sys/debug.h>
 #include <sys/syscalls.h>
 #include <sys/event.h>
+#include <sys/panic.h>
 #include "trng.h"
 #include "globals.h"
 #include "random.h"
 
 
-/*
+/* @brief   Initialize the Random Number Generator device driver
  *
+ * @param   argc, command line argument count
+ * @brief   argv, command line arguments
  */
 void init (int argc, char *argv[])
 {	
   if (process_args(argc, argv) != 0) {
-    exit(EXIT_FAILURE);
+    panic("process command line arguments failed");
   }
     
   if (trng_hw_init() != 0) {
-    log_error("random: initialization failed, exiting");
-    exit(EXIT_FAILURE);
+    panic("random: trng_hw_init failed");
   }
 
   if (mount_device() < 0) {
-    log_error("random: mount device failed, exiting");
-    exit(EXIT_FAILURE);
+    panic("mount device failed");
   }
 
   kq = kqueue();
   
   if (kq < 0) {
-    log_error("random: create kqueue for serial failed");
-    exit(EXIT_FAILURE);
+    panic("create kqueue failed");
   }
 }
 
 
-/*
+/* @brief   Process command line arguments into the config structure
  *
+ * @param   argc, command line argument count
+ * @brief   argv, command line arguments
  */
 int process_args(int argc, char *argv[])
 {
@@ -73,29 +75,30 @@ int process_args(int argc, char *argv[])
 
   config.uid = 0;
   config.gid = 0;
-  config.dev = 2345;
+  config.dev = -1;
   config.mode = 0777 | S_IFCHR;
   
-  if (argc <= 1) {
+  if (argc < 1) {
+    log_error("no command line arguments, argc:%d", argc);
     return -1;
   }
   
   while ((c = getopt(argc, argv, "u:g:m:d:")) != -1) {
     switch (c) {
     case 'u':
-      config.uid = atoi(optarg);
+      config.uid = strtoul(optarg, NULL, 0);
       break;
 
     case 'g':
-      config.gid = atoi(optarg);
+      config.gid = strtoul(optarg, NULL, 0);
       break;
 
     case 'm':
-      config.mode = atoi(optarg);
+      config.mode = strtoul(optarg, NULL, 0);
       break;
 
     case 'd':
-      config.dev = atoi(optarg);
+      config.dev = strtoul(optarg, NULL, 0);
       break;
       
     default:
@@ -104,7 +107,7 @@ int process_args(int argc, char *argv[])
   }
 
   if (optind >= argc) {
-    return -1;
+    panic("missing mount pathname");
   }
 
   strncpy(config.pathname, argv[optind], sizeof config.pathname);
@@ -112,7 +115,7 @@ int process_args(int argc, char *argv[])
 }
 
 
-/*
+/* @brief   Mount the device in the file system
  *
  */
 int mount_device(void)

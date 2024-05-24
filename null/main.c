@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define LOG_LEVEL_WARN
+#define LOG_LEVEL_INFO
 
 #include <errno.h>
 #include <stdbool.h>
@@ -54,21 +54,25 @@ void main(int argc, char *argv[])
 
     if (nevents == 1 && ev.ident == portid && ev.filter == EVFILT_MSGPORT) {
       while ((sc = getmsg(portid, &msgid, &req, sizeof req)) == sizeof req) {
+        log_info("get msg ok");
+        
         switch (req.cmd) {
           case CMD_READ:
-            replymsg(portid, msgid, 0, NULL, 0);
+            log_info("cmd_read");
+            replymsg(portid, msgid, req.args.read.sz, NULL, 0);
             break;
 
           case CMD_WRITE:
-            replymsg(portid, msgid, 0, NULL, 0);
+            log_info("cmd_write");
+            replymsg(portid, msgid, req.args.write.sz, NULL, 0);
             break;
 
           case CMD_ISATTY:
-            replymsg(portid, msgid, -ENOTTY, NULL, 0);
+            replymsg(portid, msgid, false, NULL, 0);
             break;
 
           default:
-            log_warn("null: unknown command: %d", req.cmd);
+            log_warn("unknown command: %d", req.cmd);
             replymsg(portid, msgid, -ENOTSUP, NULL, 0);
             break;
         }

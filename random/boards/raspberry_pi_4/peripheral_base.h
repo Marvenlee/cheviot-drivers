@@ -25,7 +25,7 @@
  * ARM Physical base addresses of peripherals
  */ 
 #define PERIPHERAL_BASE       0xFE000000                        /* Peripheral ARM phyiscal address */
-#define RNG_BASE						  (PERIPHERAL_BASE + 0x104000)			/* TRNG registers */
+#define RNG_BASE						  (PERIPHERAL_BASE + 0x104000)			/* IProc RNG200 TRNG registers */
 
 #endif
 
