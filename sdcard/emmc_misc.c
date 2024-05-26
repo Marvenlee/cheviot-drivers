@@ -37,7 +37,7 @@
 
 //#define NDEBUG
 //#define EMMC_DEBUG
-#define LOG_LEVEL_INFO
+#define LOG_LEVEL_WARN
 
 #include <stdint.h>
 #include <stdio.h>
@@ -87,7 +87,6 @@ uint32_t sd_get_base_clock_hz(void) {
   return 0;
 #endif
 
-  log_info("base clock rate is %i Hz", base_clock);
   return base_clock;
 }
 
@@ -326,7 +325,7 @@ int sd_switch_clock_rate(uint32_t base_clock, uint32_t target_rate) {
   mmio_write(emmc_base + EMMC_CONTROL1, control1);
   delay_microsecs(2000);
 
-  log_info("successfully set clock rate to %i Hz", target_rate);
+  log_info("set clock rate to %i Hz", target_rate);
   return 0;
 }
 

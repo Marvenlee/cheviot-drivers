@@ -1,5 +1,5 @@
 
-#define LOG_LEVEL_INFO
+#define LOG_LEVEL_WARN
 
 #include "sys/debug.h"
 #include <dirent.h>
@@ -41,8 +41,6 @@ int main(int argc, char *argv[])
   int portid;
   msgid_t msgid;
   struct bdev_unit *unit;
-   
-  log_info("sdcard starting");
    
   init(argc, argv);  
 

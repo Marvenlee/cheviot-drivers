@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#define LOG_LEVEL_WARN
+
 #include <dirent.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -58,8 +60,6 @@ void taskmain(int argc, char *argv[])
   msgid_t msgid;
   struct timespec timeout;
   
-  log_info("Aux UART driver started");
-   
   init(argc, argv);
 
   taskcreate(reader_task, NULL, 8092);

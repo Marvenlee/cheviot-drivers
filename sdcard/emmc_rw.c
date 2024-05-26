@@ -38,7 +38,7 @@
 //#define NDEBUG
 //#define EMMC_DEBUG
 //#define ENABLE_READ_BENCHMARK_LOGGING
-#define LOG_LEVEL_INFO
+#define LOG_LEVEL_WARN
 
 #include <stdint.h>
 #include <stdio.h>

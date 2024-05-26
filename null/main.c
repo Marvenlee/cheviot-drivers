@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define LOG_LEVEL_INFO
+#define LOG_LEVEL_WARN
 
 #include <errno.h>
 #include <stdbool.h>
@@ -54,16 +54,12 @@ void main(int argc, char *argv[])
 
     if (nevents == 1 && ev.ident == portid && ev.filter == EVFILT_MSGPORT) {
       while ((sc = getmsg(portid, &msgid, &req, sizeof req)) == sizeof req) {
-        log_info("get msg ok");
-        
         switch (req.cmd) {
           case CMD_READ:
-            log_info("cmd_read");
             replymsg(portid, msgid, req.args.read.sz, NULL, 0);
             break;
 
           case CMD_WRITE:
-            log_info("cmd_write");
             replymsg(portid, msgid, req.args.write.sz, NULL, 0);
             break;
 

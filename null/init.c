@@ -113,8 +113,6 @@ int mount_device(void)
 {
   struct stat mnt_stat;
 
-  log_info("mounting device");
-
   mnt_stat.st_dev = config.dev;
   mnt_stat.st_ino = 0;
   mnt_stat.st_mode = S_IFCHR | (config.mode & 0777);

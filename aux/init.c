@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#define LOG_LEVEL_WARN
+
 #include <dirent.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -38,8 +40,6 @@
  */
 void init (int argc, char *argv[])
 {
-  log_info("serial - init");
-
 	termios.c_iflag = ICRNL;		/* Input */
 	termios.c_oflag = ONLCR;		/* Output */
 	termios.c_cflag = CS8;		/* Control */
@@ -72,8 +72,6 @@ void init (int argc, char *argv[])
     exit(EXIT_FAILURE);
   }
 
-  log_info("uart configure complete");
-
   if (mount_device() < 0) {
     log_error("mount device failed, exiting");
     exit(EXIT_FAILURE);
@@ -85,8 +83,6 @@ void init (int argc, char *argv[])
     log_error("create kqueue for serial failed");
     exit(EXIT_FAILURE);
   }
-  
-  log_info("aux uart initialization complete");
 }
 
 

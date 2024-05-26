@@ -1,4 +1,4 @@
-#define LOG_LEVEL_INFO
+#define LOG_LEVEL_WARN
 
 #include "sdcard.h"
 #include "globals.h"
@@ -31,8 +31,6 @@
 void init(int argc, char *argv[])
 {
   int sc;
-  
-  log_info("init");
 
   sc = process_args(argc, argv);
   if (sc != 0) {
@@ -84,8 +82,6 @@ void init(int argc, char *argv[])
   }
   
   buf_phys = virtualtophysaddr(buf);
-  
-  log_info ("buf: %08x, buf_phys:%08x", (uint32_t)buf, (uint32_t)buf_phys);
   
   _swi_setschedparams(SCHED_RR, SDCARD_TASK_PRIORITY);
 }
@@ -173,8 +169,8 @@ int map_io_registers(void)
                                          (void *)MBOX_BASE);
   mbox_base += MBOX_BASE_OFFSET;
 
-  log_info("emmc_base:  %08x, pa:%08x", (uint32_t)emmc_base, EMMC_BASE);
-  log_info("mbox_base:  %08x, pa:%08x (base)", (uint32_t)mbox_base, MBOX_BASE);
+  log_debug("emmc_base:  %08x, pa:%08x", (uint32_t)emmc_base, EMMC_BASE);
+  log_debug("mbox_base:  %08x, pa:%08x (base)", (uint32_t)mbox_base, MBOX_BASE);
 
   return 0;
 }
@@ -190,8 +186,6 @@ int create_device_mount(void)
 {
   struct stat mnt_stat;
   struct kevent ev;
-
-  log_info("create_device_mount");
   
   snprintf(unit[0].path, sizeof unit[0].path, "%s", config.pathname);
   unit[0].start = 0;

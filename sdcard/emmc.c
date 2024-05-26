@@ -37,7 +37,7 @@
 
 //#define NDEBUG
 //#define EMMC_DEBUG
-#define LOG_LEVEL_INFO
+#define LOG_LEVEL_WARN
 
 #include <stdint.h>
 #include <stdio.h>
@@ -130,7 +130,7 @@ void sd_issue_command_int(struct emmc_block_dev *dev, uint32_t cmd_reg,
 
   // Test for errors
   if ((irpts & 0xffff0001) != 0x1) {
-    log_error("error occured whilst waiting for command complete interrupt");
+    log_debug("error occured whilst waiting for command complete interrupt");
     dev->last_error = irpts & 0xffff0000;
     dev->last_interrupt = irpts;
     return;

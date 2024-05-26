@@ -37,7 +37,7 @@
 
 //#define NDEBUG
 //#define EMMC_DEBUG
-#define LOG_LEVEL_DEBUG
+#define LOG_LEVEL_WARN
 
 #include <stdint.h>
 #include <stdio.h>
@@ -60,17 +60,15 @@
  */
 int sd_card_init(struct block_device **dev)
 {
-	log_info("**** sd_card_init ****");
-
   // Check the sanity of the sd_commands and sd_acommands structures
   if (sd_commands_sz != (64 * sizeof(uint32_t))) {
-    log_info("fatal error, sd_commands of incorrect size: %i"
+    log_error("fatal error, sd_commands of incorrect size: %i"
          " expected %i",
          sd_commands_sz, 64 * sizeof(uint32_t));
     return -1;
   }
   if (sd_acommands_sz != (64 * sizeof(uint32_t))) {
-    log_info("fatal error, sd_acommands of incorrect size: %i"
+    log_error("fatal error, sd_acommands of incorrect size: %i"
          " expected %i",
          sd_acommands_sz, 64 * sizeof(uint32_t));
     return -1;
@@ -80,14 +78,12 @@ int sd_card_init(struct block_device **dev)
 // Power cycle the card to ensure its in its startup state
 
   if(bcm_2708_power_cycle() != 0) {
-    log_info("BCM2708 controller did not power cycle successfully");
+    log_error("BCM2708 controller did not power cycle successfully");
     return -1;
   }
 
   log_info("BCM2708 controller power-cycled");
 #endif
-
-	log_info("* read controller version");
 
   // Read the controller version
   uint32_t ver = mmio_read(emmc_base + EMMC_SLOTISR_VER);
@@ -105,8 +101,6 @@ int sd_card_init(struct block_device **dev)
   }
 
   // Reset the controller
-  log_info("resetting controller");
-  
   uint32_t control1 = mmio_read(emmc_base + EMMC_CONTROL1);
   control1 |= (1 << 24);
   // Disable clock
@@ -120,7 +114,7 @@ int sd_card_init(struct block_device **dev)
     return -1;
   }
 
-  log_info("control0: %08x, control1: %08x, control2: %08x",
+  log_debug("control0: %08x, control1: %08x, control2: %08x",
        mmio_read(emmc_base + EMMC_CONTROL0),
        mmio_read(emmc_base + EMMC_CONTROL1),
        mmio_read(emmc_base + EMMC_CONTROL2));
@@ -129,9 +123,7 @@ int sd_card_init(struct block_device **dev)
   capabilities_0 = mmio_read(emmc_base + EMMC_CAPABILITIES_0);
   capabilities_1 = mmio_read(emmc_base + EMMC_CAPABILITIES_1);
 
-  log_info("capabilities: %08x%08x", capabilities_1, capabilities_0);
-
-	log_info("Setting SD bus to 3.3V");
+  log_debug("capabilities: %08x%08x", capabilities_1, capabilities_0);
 
 	// Enable SD Bus Power VDD1 at 3.3V
   uint32_t control0 = mmio_read(emmc_base + EMMC_CONTROL0);
@@ -140,25 +132,20 @@ int sd_card_init(struct block_device **dev)
   delay_microsecs(5000);
 
 
-// Check for a valid card
-  log_info("checking for an inserted card");
-
+  // Check for a valid card
   TIMEOUT_WAIT(mmio_read(emmc_base + EMMC_STATUS) & (1 << 16), 500000);
   uint32_t status_reg = mmio_read(emmc_base + EMMC_STATUS);
   if ((status_reg & (1 << 16)) == 0) {
     log_warn("no card inserted");
     return -1;
   }
-
-  log_info("status: %08x", status_reg);
-
+  
   // Clear control2
   mmio_write(emmc_base + EMMC_CONTROL2, 0);
 
   // Get the base clock rate
   uint32_t base_clock = sd_get_base_clock_hz();
   if (base_clock == 0) {
-    log_info("assuming clock rate to be 100MHz");
     base_clock = SD_RPI_BASE_CLOCK;
   }
 
@@ -169,7 +156,7 @@ int sd_card_init(struct block_device **dev)
   // Set to identification frequency (400 kHz)
   uint32_t f_id = sd_get_clock_divider(base_clock, SD_CLOCK_ID);
   if (f_id == SD_GET_CLOCK_DIVIDER_FAIL) {
-    log_info("unable to get a valid clock divider for ID frequency");
+    log_error("unable to get a valid clock divider for ID frequency");
     return -1;
   }
 	
@@ -186,27 +173,23 @@ int sd_card_init(struct block_device **dev)
   TIMEOUT_WAIT(mmio_read(emmc_base + EMMC_CONTROL1) & 0x2, 1000000);
 
   if ((mmio_read(emmc_base + EMMC_CONTROL1) & 0x2) == 0) {
-    log_info("controller's clock did not stabilise within 1 second");
+    log_error("controller's clock did not stabilise within 1 second");
     return -1;
   }
 
-  log_info("control0: %08x, control1: %08x",
-       mmio_read(emmc_base + EMMC_CONTROL0),
-       mmio_read(emmc_base + EMMC_CONTROL1));
+  log_debug("control0: %08x, control1: %08x",
+            mmio_read(emmc_base + EMMC_CONTROL0),
+            mmio_read(emmc_base + EMMC_CONTROL1));
 
   // Enable the SD clock
-  log_info("enabling SD clock");
-
   delay_microsecs(2000);
   control1 = mmio_read(emmc_base + EMMC_CONTROL1);
   control1 |= 4;
   mmio_write(emmc_base + EMMC_CONTROL1, control1);
   delay_microsecs(2000);
 
-  log_info("reset interrupts");
-
   // Mask off sending interrupts to the ARM
-//  mmio_write(emmc_base + EMMC_IRPT_EN, 0);
+  //  mmio_write(emmc_base + EMMC_IRPT_EN, 0);
   // Reset interrupts
   mmio_write(emmc_base + EMMC_INTERRUPT, 0xffffffff);
   // Have all interrupts sent to the INTERRUPT register
@@ -239,11 +222,6 @@ int sd_card_init(struct block_device **dev)
   ret->bd.supports_multiple_block_write = 1;
   ret->base_clock = base_clock;
 
-  log_info("issue go idle command");
-
-  // Send CMD0 to the card (reset to idle state)
-//  sd_issue_command(ret, GO_IDLE_STATE, 0, 500000);
-
 	sd_issue_command(ret, GO_IDLE_STATE, 0, 1500000);
 
 	if (FAIL(ret)) {
@@ -269,7 +247,7 @@ int sd_card_init(struct block_device **dev)
     mmio_write(emmc_base + EMMC_INTERRUPT, SD_ERR_MASK_CMD_TIMEOUT);
     v2_later = 0;
   } else if (FAIL(ret)) {
-    log_info("failure sending CMD8 (%08x)", ret->last_interrupt);
+    log_error("failure sending CMD8 (%08x)", ret->last_interrupt);
     return -1;
   } else {
     if ((ret->last_r0 & 0xfff) != 0x1aa) {
@@ -283,7 +261,7 @@ int sd_card_init(struct block_device **dev)
 // Here we are supposed to check the response to CMD5 (HCSS 3.6)
 // It only returns if the card is a SDIO card
 #ifdef EMMC_DEBUG
-  log_warn("note that a timeout error on the following command (CMD5) is "
+  log_debug("note that a timeout error on the following command (CMD5) is "
        "normal and expected if the card is not a SDIO card.");
 #endif
   sd_issue_command(ret, IO_SET_OP_COND, 0, 10000);
@@ -300,15 +278,11 @@ int sd_card_init(struct block_device **dev)
   }
 
   // Call an inquiry ACMD41 (voltage window = 0) to get the OCR
-  log_info("sending inquiry ACMD41");
-
   sd_issue_command(ret, ACMD(41), 0, 500000);
   if (FAIL(ret)) {
     log_error("inquiry ACMD41 failed");
     return -1;
   }
-
-  log_info("inquiry ACMD41 returned %08x", ret->last_r0);
 
   // Call initialization ACMD41
   int card_is_busy = 1;
@@ -349,8 +323,7 @@ int sd_card_init(struct block_device **dev)
       card_is_busy = 0;
     } else {
       // Card is still busy
-      log_warn("card is busy, retrying");
-      delay_microsecs(500000);
+      delay_microsecs(500000);  // FIXME: reduce delay?
     }
   }
 
@@ -366,6 +339,7 @@ int sd_card_init(struct block_device **dev)
   // A small wait before the voltage switch
   delay_microsecs(20000);
 
+  
 #if 0  
   // Switch to 1.8V mode if possible
   if (ret->card_supports_18v) {
@@ -460,7 +434,7 @@ int sd_card_init(struct block_device **dev)
   // Send CMD2 to get the cards CID
   sd_issue_command(ret, ALL_SEND_CID, 0, 500000);
   if (FAIL(ret)) {
-    log_info("error sending ALL_SEND_CID");
+    log_error("error sending ALL_SEND_CID");
     return -1;
   }
   uint32_t card_cid_0 = ret->last_r0;
@@ -482,7 +456,7 @@ int sd_card_init(struct block_device **dev)
 // How to determine HC capacity type cards?
 // not sure what last params are for?
 
-/*
+#if 0
   sd_issue_command(ret, SEND_CSD, 0, 500000);
   if (FAIL(ret)) {
     log_info("error sending SEND_CSD");
@@ -499,9 +473,9 @@ int sd_card_init(struct block_device **dev)
   dev_csd[1] = card_csd_1;
   dev_csd[2] = card_csd_2;
   dev_csd[3] = card_csd_3;
-//  ret->bd.device_id = (uint8_t *)dev_id;
-//  ret->bd.dev_id_len = 4 * sizeof(uint32_t);
-*/
+  // ret->bd.device_id = (uint8_t *)dev_id;
+  // ret->bd.dev_id_len = 4 * sizeof(uint32_t);
+#endif
 
   // Send CMD3 to enter the data state
   sd_issue_command(ret, SEND_RELATIVE_ADDR, 0, 500000);
@@ -512,8 +486,6 @@ int sd_card_init(struct block_device **dev)
   }
 
   uint32_t cmd3_resp = ret->last_r0;
-
-  log_info("CMD3 response: %08x", cmd3_resp);
 
   ret->card_rca = (cmd3_resp >> 16) & 0xffff;
   uint32_t crc_error = (cmd3_resp >> 15) & 0x1;
@@ -549,8 +521,6 @@ int sd_card_init(struct block_device **dev)
     free(dev_id);
     return -1;
   }
-
-  log_info("RCA: %04x", ret->card_rca);
 
   // Now select the card (toggles it to transfer state)
   sd_issue_command(ret, SELECT_CARD, ret->card_rca << 16, 500000);
@@ -622,17 +592,15 @@ int sd_card_init(struct block_device **dev)
     }
   }
 
-  log_info("&scr: %08x", &ret->scr->scr[0]);
-  log_info("SCR[0]: %08x, SCR[1]: %08x", ret->scr->scr[0], ret->scr->scr[1]);
-  log_info("SCR: %08x%08x", byte_swap(ret->scr->scr[0]), byte_swap(ret->scr->scr[1]));
-  log_info("SCR: version %s, bus_widths %01x", sd_versions[ret->scr->sd_version], ret->scr->sd_bus_widths);
-
+  log_debug("&scr: %08x", &ret->scr->scr[0]);
+  log_debug("SCR[0]: %08x, SCR[1]: %08x", ret->scr->scr[0], ret->scr->scr[1]);
+  log_debug("SCR: %08x%08x", byte_swap(ret->scr->scr[0]), byte_swap(ret->scr->scr[1]));
+  log_debug("SCR: version %s, bus_widths %01x", sd_versions[ret->scr->sd_version], ret->scr->sd_bus_widths);
 
 #ifdef SD_4BIT_DATA
   if (ret->scr->sd_bus_widths & 0x4) {
     // Set 4-bit transfer mode (ACMD6)
     // See HCSS 3.4 for the algorithm
-    log_info("switching to 4-bit data mode");
 
     // Disable card interrupt in host
     uint32_t old_irpt_mask = mmio_read(emmc_base + EMMC_IRPT_MASK);
@@ -642,7 +610,7 @@ int sd_card_init(struct block_device **dev)
     // Send ACMD6 to change the card's bit mode
     sd_issue_command(ret, SET_BUS_WIDTH, 0x2, 500000);
     if (FAIL(ret)) {
-      log_info("switch to 4-bit data mode failed");
+      log_warn("switch to 4-bit data mode failed");
     } else {
       // Change bit mode for Host
       uint32_t control0 = mmio_read(emmc_base + EMMC_CONTROL0);
@@ -651,8 +619,6 @@ int sd_card_init(struct block_device **dev)
 
       // Re-enable card interrupt in host
       mmio_write(emmc_base + EMMC_IRPT_MASK, old_irpt_mask);
-
-      log_info("switch to 4-bit complete");
     }
   }
 #endif
