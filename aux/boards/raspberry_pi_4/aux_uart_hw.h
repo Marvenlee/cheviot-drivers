@@ -23,7 +23,7 @@
 
 
 // Constants and macros
-#define EVENT_AUX_INT   1       // Event bit to set on an interrupt occuring
+#define EVENT_AUX_INT           1       // Event bit to set on an interrupt occuring
 
 #define AUX_UART_BAUD           115200
 #define AUX_UART_IRQ            (29 + 96)

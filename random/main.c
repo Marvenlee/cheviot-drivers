@@ -48,20 +48,15 @@ void main(int argc, char *argv[])
   int sc;
   int nevents;
   msgid_t msgid;
-  struct timespec timeout;
    
   init(argc, argv);
 
-  timeout.tv_sec = 0;
-  timeout.tv_nsec = 500000000;
-    
   EV_SET(&setev, portid, EVFILT_MSGPORT, EV_ADD | EV_ENABLE, 0, 0, 0); 
-  // EV_SET(&setev[1], interrupt_fd, EVFILT_IRQ, EV_ADD | EV_ENABLE, 0, 0, 0); 
   kevent(kq, &setev, 1,  NULL, 0, NULL);
 
   while (1) {
     errno = 0;
-    nevents = kevent(kq, NULL, 0, &ev, 1, &timeout);
+    nevents = kevent(kq, NULL, 0, &ev, 1, NULL);
 
     if (nevents == 1 && ev.ident == portid && ev.filter == EVFILT_MSGPORT) {
       while ((sc = getmsg(portid, &msgid, &req, sizeof req)) == sizeof req) {

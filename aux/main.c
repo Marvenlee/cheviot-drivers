@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include <unistd.h>
 #include <poll.h>
 #include <sys/mount.h>
@@ -33,6 +34,7 @@
 #include <sys/debug.h>
 #include <sys/lists.h>
 #include <sys/event.h>
+#include <sys/panic.h>
 #include <task.h>
 #include "common.h"
 #include "globals.h"
@@ -59,9 +61,18 @@ void taskmain(int argc, char *argv[])
   int nevents;
   msgid_t msgid;
   struct timespec timeout;
+  struct sigaction sact;  
   
   init(argc, argv);
 
+  sact.sa_handler = &sigterm_handler;
+  sigemptyset(&sact.sa_mask);
+  sact.sa_flags = 0;
+  
+  if (sigaction(SIGTERM, &sact, NULL) != 0) {
+    exit(-1);
+  }
+  
   taskcreate(reader_task, NULL, 8092);
   taskcreate(writer_task, NULL, 8092);
   taskcreate(uart_tx_task, NULL, 8092);
@@ -69,7 +80,9 @@ void taskmain(int argc, char *argv[])
 
   timeout.tv_sec = 0;
   timeout.tv_nsec = AUX_KEVENT_TIMEOUT_NS;
-    
+
+  aux_uart_set_kevent_mask(kq);
+      
   EV_SET(&setev, portid, EVFILT_MSGPORT, EV_ADD | EV_ENABLE, 0, 0, 0); 
   kevent(kq, &setev, 1,  NULL, 0, NULL);
 
@@ -79,9 +92,21 @@ void taskmain(int argc, char *argv[])
     errno = 0;
     nevents = kevent(kq, NULL, 0, &ev, 1, &timeout);
 
+    if (nevents == -ETIMEDOUT || (nevents == 1 && ev.filter == EVFILT_THREAD_EVENT)) {
+      /* Check for interrupts and awaken Tx and/or Rx tasks
+       * Yield until no other task is running. */   
+      aux_uart_handle_interrupt(ev.fflags);
+      aux_uart_unmask_interrupt();
+    }
+    
     if (nevents == 1 && ev.ident == portid && ev.filter == EVFILT_MSGPORT) {
       while ((sc = getmsg(portid, &msgid, &req, sizeof req)) == sizeof req) {
         switch (req.cmd) {
+          case CMD_ABORT:
+            log_error("CMD_ABORT");
+            cmd_abort(msgid);
+            break;
+
           case CMD_READ:
             cmd_read(msgid, &req);
             break;
@@ -114,14 +139,17 @@ void taskmain(int argc, char *argv[])
         exit(EXIT_FAILURE);
       }
     }
-
-    /* Check for interrupts and awaken Tx and/or Rx tasks
-     * Yield until no other task is running. */   
-    aux_uart_handle_interrupt();      
+    
+    if (shutdown == true) {
+      log_info("shutdown");
+      break;
+    }
+    
     while (taskyield() != 0);
-    aux_uart_unmask_interrupt();
   }
 
+  // TODO: Flush and data to output queue, drain input queue and RX FIFO
+  // Remove interrupt handler, disable UART.
   exit(0);
 }
 
@@ -143,16 +171,49 @@ void cmd_tcgetattr(msgid_t msgid, struct fsreq *fsreq)
   replymsg(portid, msgid, 0, &termios, sizeof termios);
 }
 
+
 /*
  * FIX: add actions to specify when/what should be modified/flushed.
  */ 
 void cmd_tcsetattr(msgid_t msgid, struct fsreq *fsreq)
 {
+  log_info("**** tcsetattr ****");
+ 
   readmsg(portid, msgid, &termios, sizeof termios, sizeof *fsreq);
 
   // TODO: Flush any buffers, change stream mode to canonical etc
 
 	replymsg(portid, msgid, 0, NULL, 0);
+}
+
+
+/* @brief   Abort an in-progress message.
+ *
+ * TODO: Return any remaining bytes read or bytes already written.
+ * Alternatively, set read_cancel = true and signal the rendez to
+ * let the tasks perform the cleanup and return of remaining data.
+ */
+void cmd_abort(msgid_t msgid)
+{  
+  if (read_pending == true && read_msgid == msgid) {
+    read_pending = false;
+    read_msgid = -1;
+
+    taskwakeup(&read_cmd_rendez);
+    taskwakeup(&rx_data_rendez);    
+    replymsg(portid, msgid, -EINTR, NULL, 0);
+    
+  } else if (write_pending == true && write_msgid == msgid) {
+    write_pending = false;
+    write_msgid = -1;
+    
+    taskwakeup(&write_cmd_rendez);
+    taskwakeup(&tx_rendez);
+  	replymsg(portid, msgid, -EINTR, NULL, 0);  
+
+  } else {
+    panic("aux: abortmsg on non-existant message");  
+  }
 }
 
 
@@ -198,19 +259,27 @@ void reader_task (void *arg)
     while (read_pending == false) {
       tasksleep (&read_cmd_rendez);
     }
-
+    
     sz = 0;
     remaining = 0;
     buf = NULL;
     nbytes_read = 0;
     
-    while (rx_sz == 0) {
+    while (rx_sz == 0 && read_pending == true) {
       tasksleep(&rx_data_rendez);
     }
 
+    if (read_pending == false) {
+      continue;
+    }
+
     if (termios.c_lflag & ICANON) {
-      while(line_cnt == 0) {
+      while(line_cnt == 0 && read_pending == true) {
         tasksleep(&rx_data_rendez);
+      }
+    
+      if (read_pending == false) {
+        continue;
       }
     
       // Could we remove line_length calculation each time ?
@@ -286,8 +355,12 @@ void writer_task (void *arg)
       exit(7);
     }
     
-    while (tx_free_sz == 0) {
+    while (tx_free_sz == 0 && write_pending == true) {
       tasksleep(&tx_free_rendez);
+    }
+
+    if (write_pending == false) {
+      continue;
     }
 
     remaining = (tx_free_sz < write_fsreq.args.write.sz) ? tx_free_sz : write_fsreq.args.write.sz;
@@ -333,6 +406,7 @@ void writer_task (void *arg)
   }
 }
 
+
 /*
  * Effectively a deferred procedure call for interrupts running on task state
  */
@@ -344,6 +418,7 @@ void uart_tx_task(void *arg)
     }
   
     if (tx_sz + tx_free_sz > sizeof tx_buf) {
+      log_error("exit failure tx_sz");
       exit(EXIT_FAILURE);
     }
     
@@ -360,7 +435,7 @@ void uart_tx_task(void *arg)
     }
 
     if (tx_free_sz > 0) {
-      // TODO: PollNotify(fd, INO_NR, POLLIN, POLLIN);
+      // TODO: knotei() indicate we have free space in output buffer to write to
       taskwakeupall(&tx_free_rendez);
     }   
   }
@@ -393,40 +468,9 @@ void uart_rx_task(void *arg)
     }
     else if (rx_sz > 0) {
         taskwakeupall(&rx_data_rendez);
-        // TODO: PollNotify(fd, INO_NR, POLLIN, ~POLLIN);
+        // TODO: knotei() indicate we have data to read
     }
   }
-}
-
-
-/*
- *
- */
-int add_to_rx_queue(uint8_t ch)
-{
-  if (rx_free_sz > 1) {
-    rx_buf[rx_free_head] = ch;
-    rx_sz++;
-    rx_free_head = (rx_free_head + 1) % sizeof rx_buf;
-    rx_free_sz--;
-  }
-  
-  return 0;
-}
-
-
-/*
- *
- */
-int rem_from_rx_queue(void)
-{
-  if (rx_sz > 0) {
-    rx_sz --;
-    rx_free_head = (rx_free_head - 1) % sizeof rx_buf;
-    rx_free_sz++;    
-  }
-  
-  return 0;
 }
 
 
@@ -435,42 +479,115 @@ int rem_from_rx_queue(void)
  */
 void line_discipline(uint8_t ch)
 {
-  int last_char;  
-
-  if ((ch == termios.c_cc[VEOL] || ch == termios.c_cc[VEOL2]) && (termios.c_lflag & ECHONL)) {        
-      echo(ch);    
-  } else {       
-    if (!(ch == termios.c_cc[VEOL] || ch == termios.c_cc[VEOL2] || ch == '\b' || ch == 0x7F)
-          && (termios.c_lflag & ECHO)) {
-      echo(ch);
-    }
+  int sig = -1;
+  int eflags = 0;
+  
+  if (termios.c_iflag & ISTRIP) {
+    ch &= 0x7F;
   }
   
-  if (termios.c_lflag & ICANON) {
-    if (ch == termios.c_cc[VEOL]) {
-      add_to_rx_queue('\n');
-      line_cnt++;
-    } else if (ch == termios.c_cc[VEOL2]) {
-      add_to_rx_queue('\n');
-      line_cnt++;
-    } else if (ch == '\b' || ch == 0x7F) {
-      if (rx_sz > 0) {
-        last_char = rx_buf[(rx_head + rx_sz - 1) % sizeof rx_buf];
-        if (last_char != termios.c_cc[VEOL] && last_char != termios.c_cc[VEOL2]) {
-          rem_from_rx_queue();
-          echo('\b');
-          echo(' ');
-          echo('\b');
-        }
-      }
-    } else {      
-      if (rx_free_sz > 2) {  // leave space for '\n'
-        add_to_rx_queue(ch);
-      }    
+	if (ch == '\n' && termios.c_iflag & INLCR) {
+    ch = '\r';
+	} else if (ch == '\r' && termios.c_iflag & ICRNL) {
+    ch = '\n';
+  } else if (ch == '\r' && termios.c_iflag & IGNCR) {
+    return;
+	}
+		
+	if (termios.c_lflag & ICANON) {
+		if (ch == termios.c_cc[VERASE]) {
+			backspace();
+			
+			if (!(termios.c_lflag & ECHOE)) {
+				echo(ch, 0);
+			}
+						
+			return;
+		}
+
+		if (ch == termios.c_cc[VKILL]) {
+		  delete_line();
+			
+			if (!(termios.c_lflag & ECHOE)) {
+				echo(ch, 0);
+				
+				if (termios.c_lflag & ECHOK) {
+					echo('\n', EF_RAW);
+				}
+			}
+						
+			return;
+		}
+
+		if (ch == '\n') {
+		  eflags |= EF_EOT;
     }
-  } else { 
-    add_to_rx_queue(ch);
+    
+		if (ch == termios.c_cc[VEOL]) {
+		  eflags |= EF_EOT;
+		}
+
+		if (ch == termios.c_cc[VEOF]) {
+	    eflags |= EF_EOT | EF_EOF;
+    }    
+	}
+
+	if (termios.c_lflag & ISIG) {
+		if (ch == termios.c_cc[VINTR]) {
+			sig = SIGINT;
+			signalnotify(portid, TTY_INODE_NR, sig);
+			echo('^', eflags);
+			echo('C', eflags);
+      return;
+      
+		} else if(ch == termios.c_cc[VQUIT]) {
+			sig = SIGQUIT;
+			signalnotify(portid, TTY_INODE_NR, sig);
+			echo('^', eflags);
+			echo('\\', eflags);
+			return;
+		}
+	}
+ 
+ 	if (termios.c_lflag & (ECHO | ECHONL)) {
+	  echo(ch, eflags);
+  }
+  
+  add_to_rx_queue(ch);
+  
+	if (eflags & EF_EOT) {
+	  line_cnt++;
   }  
+}
+
+
+/* @brief   Delete character from current line
+ *
+ * @return  1 if character deleted, 0 if already at start of line.
+ */
+int backspace(void)
+{
+  uint8_t last_char;
+  
+  last_char = rx_buf[(rx_head + rx_sz - 1) % sizeof rx_buf];
+  if (last_char != termios.c_cc[VEOL] && last_char != termios.c_cc[VEOL2]) {
+    rem_from_rx_queue();
+    echo('\b', 0);    // FIXME : Should we use [VEOL] ????
+    echo(' ', 0);
+    echo('\b', 0);
+    return 1;
+  }
+  
+  return 0;
+}
+
+
+/*
+ *
+ */
+void delete_line(void)
+{
+  while (backspace());			
 }
 
 
@@ -494,20 +611,103 @@ int get_line_length(void)
 /*
  *
  */
-void echo(uint8_t ch)
+void echo(uint8_t ch, int eflags)
 {
-    while (tx_free_sz == 0) {
-      tasksleep(&tx_rendez);
-    }
+  if (eflags & EF_RAW && termios.c_lflag & ECHO) {
+    add_to_tx_queue(ch);
+    return;
+  }
 
-    tx_buf[tx_free_head] = ch;
-    tx_free_head = (tx_free_head + 1) % sizeof tx_buf;
-    tx_free_sz--;
-    tx_sz++;
+  if (!(termios.c_lflag & ECHO)) {
+  	if (ch == '\n' && (eflags & EF_EOT)
+  	    && (termios.c_lflag & (ICANON | ECHONL)) == (ICANON | ECHONL)) {
+		  add_to_tx_queue('\n');
+  	}
+  	
+  	return;
+  }
     
-    taskwakeupall(&tx_rendez);
+  add_to_tx_queue(ch);
+  
+  if (eflags & EF_EOF) {
+    // TODO: Flush output on end of file, wait for buffer to empty
+  }  
 }
 
 
+/*
+ *
+ */
+int add_to_rx_queue(uint8_t ch)
+{
+  if (rx_free_sz > 0) {
+    rx_buf[rx_free_head] = ch;
+    rx_sz++;
+    rx_free_head = (rx_free_head + 1) % sizeof rx_buf;
+    rx_free_sz--;
+  }
 
+  taskwakeupall(&rx_data_rendez);
+  
+  return 0;
+}
+
+
+/*
+ *
+ */
+int rem_from_rx_queue(void)
+{
+  if (rx_sz > 0) {
+    rx_sz --;
+    rx_free_head = (rx_free_head - 1) % sizeof rx_buf;
+    rx_free_sz++;    
+  }
+  
+  return 0;
+}
+
+
+/*
+ *
+ */
+int add_to_tx_queue(uint8_t ch)
+{
+  while (tx_free_sz == 0) {
+    tasksleep(&tx_rendez);
+  }
+
+  tx_buf[tx_free_head] = ch;
+  tx_free_head = (tx_free_head + 1) % sizeof tx_buf;
+  tx_free_sz--;
+  tx_sz++;
+
+  taskwakeupall(&tx_rendez);
+
+  return 0;
+}
+
+
+/*
+ *
+ */
+int rem_from_tx_queue(void)
+{
+  if (tx_sz > 0) {
+    tx_sz --;
+    tx_free_head = (tx_free_head - 1) % sizeof tx_buf;
+    tx_free_sz++;    
+  }
+  
+  return 0;
+}
+
+
+/*
+ *
+ */
+void sigterm_handler(int signo)
+{
+  shutdown = true;
+}
 

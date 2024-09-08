@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define LOG_LEVEL_INFO
+#define LOG_LEVEL_ERROR
 
 #include <errno.h>
 #include <stdbool.h>
@@ -38,9 +38,12 @@
 /*
  * Memory mapped IO locations
  */
+ 
+#if 0
+struct bcm2711_gpio_registers *gpio_regs;
+#endif
 struct bcm2711_aux_registers *aux_regs;
-//struct bcm2711_gpio_registers *gpio_regs;
-int interrupt_fd;
+int isrid;
 bool interrupt_masked = false;
 
 
@@ -68,15 +71,16 @@ int aux_uart_configure(int baud)
   configure_gpio(14, AUX_UART_GPIO_ALT_FN, PULL_NONE);
   configure_gpio(15, AUX_UART_GPIO_ALT_FN, PULL_NONE);
 #endif
-  
-  interrupt_fd = addinterruptserver(AUX_UART_IRQ, getpid(), EVENT_AUX_INT);
 
-  if (interrupt_fd < 0) {
-    log_error("aux: cannot create interrupt handler");
+  isrid = addinterruptserver(AUX_UART_IRQ, EVENT_AUX_INT);
+
+  if (isrid < 0) {
+    log_error("aux: cannot create interrupt handler ****************");
     return -ENOMEM;
   }
-
+  
   interrupt_masked = true;
+
 
   // TODO: kernel logging should be disabled whilst reconfiguring AUX UART to avoid
   // any deadlocks when the Tx is disabled.
@@ -96,30 +100,49 @@ int aux_uart_configure(int baud)
   return 0;
 }
 
+/*
+ *
+ */
+void aux_uart_set_kevent_mask(int kq)
+{
+  cthread_event_kevent_mask(kq, 1<<EVENT_AUX_INT);
+}
+
 
 /* @brief   Aux UART Bottom-Half interrupt handling
  *
  */
-void aux_uart_handle_interrupt(void)
+void aux_uart_handle_interrupt(uint32_t events)
 {
   uint32_t iir;
-  uint32_t events;
-  
-  events = cthread_event_check(1<<EVENT_AUX_INT);
 
   if (events & (1<<EVENT_AUX_INT)) {
     interrupt_masked = true;
     
+    log_info("aux handle interrupt");
+    
     iir = hal_mmio_read(&aux_regs->mu_iir_reg);      
 
+#if 1
     if (iir & IIR_RX) {
+      log_info("aux IIR_RX wakeup");
       taskwakeupall(&rx_rendez);
     }
 
     if (iir & IIR_TX) {
+      log_info("aux IIR_TX wakeup");
       taskwakeupall(&tx_rendez);
     }
-  }      
+#else
+    // TODO: Reduce number of rendez (tx_rendez and rx_rendez aren't needed).
+    TaskSleep(&tx_rendez);
+    TaskSleep(&rx_rendez);
+    TaskSleep(&tx_free_rendez);
+    TaskSleep(&rx_data_rendez);
+    TaskSleep(&write_cmd_rendez);
+    TaskSleep(&read_cmd_rendez);
+#endif    
+  }
 }
 
 
@@ -129,6 +152,7 @@ void aux_uart_handle_interrupt(void)
 void aux_uart_unmask_interrupt(void)
 {
   if (interrupt_masked == true) {
+    log_info("aux unmask interrupt");
     unmaskinterrupt(AUX_UART_IRQ);
     interrupt_masked = false;
   }

@@ -40,23 +40,34 @@
  */
 void init (int argc, char *argv[])
 {
-	termios.c_iflag = ICRNL;		/* Input */
-	termios.c_oflag = ONLCR;		/* Output */
-	termios.c_cflag = CS8;		/* Control */
-	termios.c_lflag = ECHO | ECHONL | ICANON; /* Local */
+	termios.c_iflag = BRKINT | ICRNL | IMAXBEL | IXON | IXANY;
+	termios.c_oflag = OPOST | ONLCR | OXTABS;
+	termios.c_lflag = ECHO | ICANON | ISIG | IEXTEN | ECHOE | ECHOKE | ECHOCTL;
+	termios.c_cflag = CREAD | CS8 | HUPCL;
+
+  termios.c_ispeed = B115200;
+  termios.c_ospeed = B115200;
 	
 	for (int t=0; t < NCCS; t++) {
 		termios.c_cc[t] = 0;
 	}
 	
-	termios.c_cc[VEOF]   = 0x04;	
-	termios.c_cc[VEOL]   = '\n';
-	termios.c_cc[VEOL2]  = '\r';
-	termios.c_cc[VERASE] = 0x7F;
-	termios.c_cc[VKILL]  = 0x40;
-
-  termios.c_ispeed = 115200;
-  termios.c_ospeed = 115200;
+	termios.c_cc[VEOF]   = 0x04;	// EOT   (ctrl-d)
+	termios.c_cc[VEOL]   = 0x0A;  // LF ('\n')
+	termios.c_cc[VEOL2]  = 0x0D;  // CR ('\r')
+	termios.c_cc[VERASE] = 0x7F;  // DEL
+	termios.c_cc[VINTR]  = 0x03;  // ETX   (ctrl-c)
+	termios.c_cc[VKILL]  = 0x15;  // NAK   (ctrl-u)
+	termios.c_cc[VMIN]   = 0;
+	termios.c_cc[VQUIT]  = 0x1C;  // FS    (ctrl-/)
+	termios.c_cc[VTIME]  = 0;
+	termios.c_cc[VSUSP]  = 0x1A;  // SUB   (ctrl-z)
+	termios.c_cc[VSTART] = 0x11;  // DC1   (ctrl-q)
+	termios.c_cc[VSTOP]  = 0x13;  // DC3   (ctrl-s)
+	termios.c_cc[VREPRINT] = 0x12;  // DC2 (ctrl-r)
+	termios.c_cc[VLNEXT]   = 0x16;  // SYN (ctrl-v) 
+	termios.c_cc[VDISCARD] = 0x0F;  // SI  (ctrl-o)
+	termios.c_cc[VSTATUS]  = 0x14;  // DC4 (ctrl-t)  
   
   tx_sz = 0;
   rx_sz = 0;
@@ -172,7 +183,7 @@ int mount_device(void)
   struct stat mnt_stat;
 
   mnt_stat.st_dev = config.dev;
-  mnt_stat.st_ino = 0;
+  mnt_stat.st_ino = TTY_INODE_NR;
   mnt_stat.st_mode = S_IFCHR | (config.mode & 0777);
   mnt_stat.st_uid = config.uid;
   mnt_stat.st_gid = config.gid;

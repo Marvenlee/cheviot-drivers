@@ -40,6 +40,8 @@ extern int portid;
 extern int kq;
 extern int sid;
 
+extern volatile bool shutdown;
+
 extern struct kevent ev;
 extern struct kevent setev;
 

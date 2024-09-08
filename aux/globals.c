@@ -37,6 +37,8 @@ int portid;
 int kq;
 int sid = 0;
 
+volatile bool shutdown = false;
+
 struct kevent ev;
 struct kevent setev;
 
