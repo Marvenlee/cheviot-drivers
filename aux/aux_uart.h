@@ -101,6 +101,7 @@ void sigterm_handler(int signo);
 
 // Board-Specific functions
 int aux_uart_configure(int baud);
+int get_fdt_device_info(void);
 void aux_uart_set_kevent_mask(int kq);
 bool aux_uart_read_ready(void);
 bool aux_uart_write_ready(void);

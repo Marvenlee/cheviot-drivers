@@ -29,7 +29,7 @@
 #include <sys/syslimits.h>
 #include <task.h>
 #include <machine/cheviot_hal.h>
-#include "trng.h"
+#include "trng_hw.h"
 
 
 /*

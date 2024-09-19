@@ -34,7 +34,7 @@
 #include <sys/lists.h>
 #include <sys/event.h>
 #include <task.h>
-#include "trng.h"
+#include "trng_hw.h"
 #include "globals.h"
 #include "random.h"
 

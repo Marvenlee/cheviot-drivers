@@ -36,7 +36,6 @@
 #include <sys/event.h>
 #include <sys/panic.h>
 #include <task.h>
-#include "common.h"
 #include "globals.h"
 
 

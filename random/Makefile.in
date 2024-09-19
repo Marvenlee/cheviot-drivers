@@ -98,12 +98,8 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(sbindir)"
 PROGRAMS = $(sbin_PROGRAMS)
-am__random_SOURCES_DIST = globals.c init.c main.c \
-	boards/raspberry_pi_4/trng.c
-am__dirstamp = $(am__leading_dot)dirstamp
-@BOARD_RASPBERRY_PI_4_TRUE@am_random_OBJECTS = globals.$(OBJEXT) \
-@BOARD_RASPBERRY_PI_4_TRUE@	init.$(OBJEXT) main.$(OBJEXT) \
-@BOARD_RASPBERRY_PI_4_TRUE@	boards/raspberry_pi_4/trng.$(OBJEXT)
+am_random_OBJECTS = globals.$(OBJEXT) init.$(OBJEXT) main.$(OBJEXT) \
+	trng_hw.$(OBJEXT)
 random_OBJECTS = $(am_random_OBJECTS)
 random_DEPENDENCIES =
 AM_V_P = $(am__v_P_@AM_V@)
@@ -122,7 +118,7 @@ DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
 am__depfiles_remade = ./$(DEPDIR)/globals.Po ./$(DEPDIR)/init.Po \
-	./$(DEPDIR)/main.Po boards/raspberry_pi_4/$(DEPDIR)/trng.Po
+	./$(DEPDIR)/main.Po ./$(DEPDIR)/trng_hw.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -137,7 +133,7 @@ am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
 SOURCES = $(random_SOURCES)
-DIST_SOURCES = $(am__random_SOURCES_DIST)
+DIST_SOURCES = $(random_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -254,12 +250,16 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-@BOARD_RASPBERRY_PI_4_TRUE@random_SOURCES = globals.c init.c main.c \
-@BOARD_RASPBERRY_PI_4_TRUE@	boards/raspberry_pi_4/trng.c
-@BOARD_RASPBERRY_PI_4_TRUE@random_LDADD = -lrpihal
-@BOARD_RASPBERRY_PI_4_TRUE@AM_CFLAGS = -O0 -std=c99 -g2
-@BOARD_RASPBERRY_PI_4_TRUE@AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/boards/raspberry_pi_4 -DBOARD_RASPBERRY_PI_4
-@BOARD_RASPBERRY_PI_4_TRUE@AM_CCASFLAGS = -r -I$(srcdir) -I$(srcdir)/boards/raspberry_pi_4 -DBOARD_RASPBERRY_PI_4
+random_SOURCES = \
+  globals.c \
+  init.c \
+  main.c \
+  trng_hw.c
+
+random_LDADD = -lrpihal -lfdthelper -lfdt 
+AM_CFLAGS = -O0 -std=c99 -g2
+AM_CPPFLAGS = -I$(srcdir) -I$(srcdir)/boards/raspberry_pi_4 -DBOARD_RASPBERRY_PI_4
+AM_CCASFLAGS = -r -I$(srcdir) -I$(srcdir)/boards/raspberry_pi_4 -DBOARD_RASPBERRY_PI_4
 all: all-am
 
 .SUFFIXES:
@@ -335,15 +335,6 @@ uninstall-sbinPROGRAMS:
 
 clean-sbinPROGRAMS:
 	-test -z "$(sbin_PROGRAMS)" || rm -f $(sbin_PROGRAMS)
-boards/raspberry_pi_4/$(am__dirstamp):
-	@$(MKDIR_P) boards/raspberry_pi_4
-	@: > boards/raspberry_pi_4/$(am__dirstamp)
-boards/raspberry_pi_4/$(DEPDIR)/$(am__dirstamp):
-	@$(MKDIR_P) boards/raspberry_pi_4/$(DEPDIR)
-	@: > boards/raspberry_pi_4/$(DEPDIR)/$(am__dirstamp)
-boards/raspberry_pi_4/trng.$(OBJEXT):  \
-	boards/raspberry_pi_4/$(am__dirstamp) \
-	boards/raspberry_pi_4/$(DEPDIR)/$(am__dirstamp)
 
 random$(EXEEXT): $(random_OBJECTS) $(random_DEPENDENCIES) $(EXTRA_random_DEPENDENCIES) 
 	@rm -f random$(EXEEXT)
@@ -351,7 +342,6 @@ random$(EXEEXT): $(random_OBJECTS) $(random_DEPENDENCIES) $(EXTRA_random_DEPENDE
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
-	-rm -f boards/raspberry_pi_4/*.$(OBJEXT)
 
 distclean-compile:
 	-rm -f *.tab.c
@@ -359,7 +349,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/globals.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/init.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@boards/raspberry_pi_4/$(DEPDIR)/trng.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/trng_hw.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -500,8 +490,6 @@ clean-generic:
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
-	-rm -f boards/raspberry_pi_4/$(DEPDIR)/$(am__dirstamp)
-	-rm -f boards/raspberry_pi_4/$(am__dirstamp)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
@@ -514,7 +502,7 @@ distclean: distclean-am
 		-rm -f ./$(DEPDIR)/globals.Po
 	-rm -f ./$(DEPDIR)/init.Po
 	-rm -f ./$(DEPDIR)/main.Po
-	-rm -f boards/raspberry_pi_4/$(DEPDIR)/trng.Po
+	-rm -f ./$(DEPDIR)/trng_hw.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -563,7 +551,7 @@ maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/globals.Po
 	-rm -f ./$(DEPDIR)/init.Po
 	-rm -f ./$(DEPDIR)/main.Po
-	-rm -f boards/raspberry_pi_4/$(DEPDIR)/trng.Po
+	-rm -f ./$(DEPDIR)/trng_hw.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

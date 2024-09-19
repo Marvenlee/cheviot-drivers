@@ -18,9 +18,12 @@
 #include <unistd.h>
 #include <sys/event.h>
 #include <machine/cheviot_hal.h>
-#include "peripheral_base.h"
 #include <sys/rpi_mailbox.h>
 #include <sys/rpi_gpio.h>
+#include <fdthelper.h>
+#include <sys/param.h>
+#include <machine/param.h>
+#include <libfdt.h>
 #include <sys/sched.h>
 
 /* @brief   Initialize the sdcard device driver
@@ -150,30 +153,114 @@ int enable_power_and_clocks(void)
 	
 	rpi_mailbox_set_power_state(MBOX_DEVICE_ID_SDCARD, MBOX_POWER_STATE_ON);
 	rpi_mailbox_set_clock_state(MBOX_CLOCK_ID_EMMC2, MBOX_CLOCK_STATE_ON);  
+}
 
 
+/*
+ *
+ * 
+ */
+int map_io_registers(void)
+{
+  if (get_fdt_device_info() != 0) {
+    return -EIO;
+  }
+
+  emmc_base = (uintptr_t)map_phys_mem(emmc_phys_base, emmc_reg_size,
+                           PROT_READ | PROT_WRITE | CACHE_UNCACHEABLE, 
+                           EMMC_REGS_START_VADDR);
+
+
+
+  if (emmc_base == (uintptr_t)NULL) {
+    return -ENOMEM;
+  }  
+
+  mbox_base = (uintptr_t)map_phys_mem(mbox_phys_base, mbox_reg_size,
+                           PROT_READ | PROT_WRITE | CACHE_UNCACHEABLE, 
+                           MBOX_REGS_START_VADDR);
+
+  if (mbox_base == (uintptr_t)NULL) {
+    return -ENOMEM;
+  }  
+
+  return 0;
 }
 
 
 /*
  *
  */
-int map_io_registers(void)
+int get_fdt_device_info(void)
 {
-  // FIXME: Define virtual addresses and sizes in header
-  emmc_base = (uint32_t)virtualallocphys((void *)0x68000000, 8092, PROT_READ | PROT_WRITE  | CACHE_UNCACHEABLE,
-                                         (void *)EMMC_BASE);
-                                         
-  // mbox_base is io registers
-  mbox_base = (uint32_t)virtualallocphys((void *)0x69000000, 8092, PROT_READ | PROT_WRITE | CACHE_UNCACHEABLE,
-                                         (void *)MBOX_BASE);
-  mbox_base += MBOX_BASE_OFFSET;
+  int offset;
+  int len;
+  
+  // Need some way of knowing which dtb to use
+  // Specify on command line?  or add a kernel sys_get_dtb_name()
+  // Passed in bootinfo.
+  
+  if (load_fdt("/lib/firmware/dt/rpi4.dtb", &helper) != 0) {
+    return -EIO;
+  }
 
-  log_debug("emmc_base:  %08x, pa:%08x", (uint32_t)emmc_base, EMMC_BASE);
-  log_debug("mbox_base:  %08x, pa:%08x (base)", (uint32_t)mbox_base, MBOX_BASE);
+  // check if the file is a valid fdt
+  if (fdt_check_header(helper.fdt) != 0) {
+    unload_fdt(&helper);
+    return -EIO;
+  }
 
-  return 0;
+  // Get the emmc base address       
+  if ((offset = fdt_path_offset(helper.fdt, "/soc/emmc2")) < 0) {
+    unload_fdt(&helper);
+    return -EIO;
+  }
+
+  if (fdthelper_check_compat(helper.fdt, offset, "brcm,bcm2711-emmc2") != 0) {
+    unload_fdt(&helper);
+    return -EIO;
+  }
+
+  if (fdthelper_get_reg(helper.fdt, offset, &emmc_vpu_base, &emmc_reg_size) != 0) {
+    unload_fdt(&helper);
+    return -EIO;
+  } 
+
+
+  if (fdthelper_translate_address(helper.fdt, emmc_vpu_base, &emmc_phys_base) != 0) {
+    unload_fdt(&helper);
+    return -EIO;        
+  }
+
+  // Get the mailbox base address  
+
+  if ((offset = fdt_path_offset(helper.fdt, "/soc/mailbox")) < 0) {
+    unload_fdt(&helper);
+    return -EIO;
+  }
+
+  if (fdthelper_check_compat(helper.fdt, offset, "brcm,bcm2835-mbox") != 0) {
+    unload_fdt(&helper);
+    return -EIO;
+  }
+
+  if (fdthelper_get_reg(helper.fdt, offset, &mbox_vpu_base, &mbox_reg_size) != 0) {
+    unload_fdt(&helper);
+    return -EIO;
+  } 
+
+
+  if (fdthelper_translate_address(helper.fdt, mbox_vpu_base, &mbox_phys_base) != 0) {
+    unload_fdt(&helper);
+    return -EIO;        
+  }
+
+  unload_fdt(&helper);
+  return 0;  
 }
+
+
+
 
 
 /* @brief   Create a block special device mount covering the whole disk

@@ -2,14 +2,18 @@
 #include "sdcard.h"
 #include <sys/syscalls.h>
 #include <sys/types.h>
+#include <fdthelper.h>
 
+struct fdthelper helper;
+void *emmc_vpu_base;
+void *emmc_phys_base;
+size_t emmc_reg_size;
+void *mbox_vpu_base;
+void *mbox_phys_base;
+size_t mbox_reg_size;
 
-uint32_t emmc_base;             // virtual address where the emmc registers are mapped
-uint32_t mbox_base;             // virtual address where the mailbox registers are mapped (needed?)
-uint32_t timer_clo;
-
-//uint32_t mailbuffer_virt_addr;   // virtual address of the mailbox buffer
-//uint32_t mailbuffer_phys_addr;
+uintptr_t emmc_base;             // virtual address where the emmc registers are mapped
+uintptr_t mbox_base;             // virtual address where the mailbox registers are mapped (needed?)
 
 struct block_device actual_device;
 struct block_device *bdev;

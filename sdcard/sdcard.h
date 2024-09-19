@@ -27,7 +27,7 @@
 #include <sys/fsreq.h>
 #include <sys/syslimits.h>
 #include <sys/syscalls.h>
-#include "peripheral_base.h"
+
 
 /*
  */
@@ -35,6 +35,9 @@
 #define SDCARD_TASK_PRIORITY  22        // Use SCHED_RR
 #define NMSG_BACKLOG 				  1
 #define BUF_SZ    			      4096      // Buffer size used to read and write
+
+#define EMMC_REGS_START_VADDR   (void *)0x60000000    // Map emmc regs above this address
+#define MBOX_REGS_START_VADDR   (void *)0x68000000    // Map mailbox regs above this address
 
 typedef uint64_t  block64_t;
 
@@ -108,6 +111,7 @@ void init(int argc, char *argv[]);
 int process_args(int argc, char *argv[]);
 int enable_power_and_clocks(void);
 int map_io_registers(void);
+int get_fdt_device_info(void);
 int create_device_mount(void);
 int create_partition_mounts(void);
 

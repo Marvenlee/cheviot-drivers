@@ -14,76 +14,78 @@
  * limitations under the License.
  */
 
-#define LOG_LEVEL_ERROR
+#define LOG_LEVEL_WARN
 
+#include <dirent.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/syscalls.h>
+#include <sys/mount.h>
+#include <sys/signal.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <sys/debug.h>
-#include <sys/lists.h>
-#include <machine/cheviot_hal.h>
-#include "peripheral_base.h"
+#include <sys/syscalls.h>
+#include <sys/event.h>
+#include <sys/panic.h>
+#include "aux_uart.h"
+#include "globals.h"
+#include <libfdt.h>
 #include "aux_uart.h"
 #include "aux_uart_hw.h"
-#include "gpio.h"
-#include "common.h"
-#include "globals.h"
-
+#include <fdthelper.h>
+#include <fdt.h>
 
 /*
  * Memory mapped IO locations
  */
- 
-#if 0
-struct bcm2711_gpio_registers *gpio_regs;
-#endif
-struct bcm2711_aux_registers *aux_regs;
+struct bcm2835_aux_registers *aux_regs;
 int isrid;
 bool interrupt_masked = false;
+struct fdthelper helper;
+void *aux_vpu_base;
+void *aux_phys_base;
+size_t aux_reg_size;
+int aux_irq;
 
 
-/* @brief   Configure the Aux UART on GPIO pins 14 and 15
+/* @brief   Configure the Aux UART
  *
+ * GPIO configuration must be done elsewhere, either in bootloader, kernel or
+ * gpio driver.
+ * 
+ * GPIO pins 14 and 15 must be configured as alternate function FN5 for Aux UART 
+ * configure_gpio(14, AUX_UART_GPIO_ALT_FN, PULL_NONE);
+ * configure_gpio(15, AUX_UART_GPIO_ALT_FN, PULL_NONE);
+ *
+ * TODO: kernel logging should be disabled whilst reconfiguring AUX UART to avoid
+ * any deadlocks when the Tx is disabled.
  */ 
 int aux_uart_configure(int baud)
 {
-  aux_regs = virtualallocphys((void *)0x50000000, 4096,
-                          PROT_READ | PROT_WRITE | CACHE_UNCACHEABLE,
-                          (void *)(AUX_BASE));  
+  if (get_fdt_device_info() != 0) {
+    return -EIO;
+  }
+
+  aux_regs = map_phys_mem(aux_phys_base, aux_reg_size,
+                          PROT_READ | PROT_WRITE | CACHE_UNCACHEABLE, 
+                          AUX_REGS_START_VADDR);
+
   if (aux_regs == NULL) {
     return -ENOMEM;
   }  
-  
-#if 0
-  gpio_regs = virtualallocphys((void *)0x50010000, 4096, 
-                          PROT_READ | PROT_WRITE | CACHE_UNCACHEABLE,
-                          (void *)(GPIO_BASE));  
-  if (gpio_regs == NULL) {
-    return -ENOMEM;
-  }
 
-  // GPIO pins 14 and 15 must be configured as alternate function FN5 for Aux UART 
-  configure_gpio(14, AUX_UART_GPIO_ALT_FN, PULL_NONE);
-  configure_gpio(15, AUX_UART_GPIO_ALT_FN, PULL_NONE);
-#endif
-
-  isrid = addinterruptserver(AUX_UART_IRQ, EVENT_AUX_INT);
+  isrid = addinterruptserver(aux_irq, EVENT_AUX_INT);
 
   if (isrid < 0) {
-    log_error("aux: cannot create interrupt handler ****************");
-    return -ENOMEM;
+    return -EINVAL;
   }
   
   interrupt_masked = true;
-
-
-  // TODO: kernel logging should be disabled whilst reconfiguring AUX UART to avoid
-  // any deadlocks when the Tx is disabled.
   
   hal_mmio_write(&aux_regs->mu_cntl_reg, 0);                // Disable Tx and Rx
   hal_mmio_write(&aux_regs->mu_lcr_reg, LCR_8_BIT | 0x02);  // FIXME: Unsure of 0x02
@@ -99,6 +101,58 @@ int aux_uart_configure(int baud)
 
   return 0;
 }
+
+
+/* @brief   Read the device tree file and gather aux uart configuration
+ *
+ * Need some way of knowing which dtb to use
+ * Specify on command line?  or add a kernel sys_get_dtb_name()
+ * Passed in bootinfo.
+ */
+int get_fdt_device_info(void)
+{
+  int offset;
+  int len;
+  
+  if (load_fdt("/lib/firmware/dt/rpi4.dtb", &helper) != 0) {
+    return -EIO;
+  }
+
+  // check if the file is a valid fdt
+  if (fdt_check_header(helper.fdt) != 0) {
+    unload_fdt(&helper);
+    return -EIO;
+  }
+     
+  if ((offset = fdt_path_offset(helper.fdt, "/soc/aux")) < 0) {
+    unload_fdt(&helper);
+    return -EIO;
+  }
+  
+  if (fdthelper_check_compat(helper.fdt, offset, "brcm,bcm2835-aux") != 0) {
+    unload_fdt(&helper);
+    return -EIO;
+  }
+
+  if (fdthelper_get_reg(helper.fdt, offset, &aux_vpu_base, &aux_reg_size) != 0) {
+    unload_fdt(&helper);
+    return -EIO;
+  } 
+
+  if (fdthelper_translate_address(helper.fdt, aux_vpu_base, &aux_phys_base) != 0) {
+    unload_fdt(&helper);
+    return -EIO;        
+  }
+
+  if (fdthelper_get_irq(helper.fdt, offset, &aux_irq) != 0) {
+    unload_fdt(&helper);
+    return -EIO;
+  }   
+
+  unload_fdt(&helper);
+  return 0;  
+}
+
 
 /*
  *

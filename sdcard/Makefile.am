@@ -13,17 +13,9 @@ sdcard_SOURCES = \
   mmio.c \
   timer.c 
 
-sdcard_LDADD = -lrpimailbox -lrpigpio -lrpihal
+sdcard_LDADD = -lrpimailbox -lrpigpio -lrpihal -lfdthelper -lfdt
 
-if BOARD_RASPBERRY_PI_1
 AM_CFLAGS = -O2 -std=c99 -g0
-AM_CPPFLAGS = -I$(srcdir)/boards/raspberry_pi_1 -DBOARD_RASPBERRY_PI_1 
-AM_CCASFLAGS = -r -I$(srcdir)/boards/raspberry_pi_1 -DBOARD_RASPBERRY_PI_1
-endif
-
-if BOARD_RASPBERRY_PI_4
-AM_CFLAGS = -O2 -std=c99 -g0
-AM_CPPFLAGS = -I$(srcdir)/boards/raspberry_pi_4 -DBOARD_RASPBERRY_PI_4
-AM_CCASFLAGS = -r -I$(srcdir)/boards/raspberry_pi_4 -DBOARD_RASPBERRY_PI_4
-endif
+AM_CPPFLAGS = -I$(srcdir)
+AM_CCASFLAGS = -r -I$(srcdir)
 

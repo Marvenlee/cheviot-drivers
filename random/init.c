@@ -32,7 +32,7 @@
 #include <sys/syscalls.h>
 #include <sys/event.h>
 #include <sys/panic.h>
-#include "trng.h"
+#include "trng_hw.h"
 #include "globals.h"
 #include "random.h"
 

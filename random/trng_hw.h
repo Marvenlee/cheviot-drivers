@@ -14,30 +14,30 @@
  * limitations under the License.
  */
 
-#ifndef BOARDS_RASPBERRY_PI_4_TRNG_H
-#define BOARDS_RASPBERRY_PI_4_TRNG_H
+#ifndef TRNG_HW_H
+#define TRNG_HW_H
 
 
 #include <stdint.h>
 #include <stdbool.h>
 
 
-/* @brief   Registers of the bcm2711 IProc RNG200 peripheral
+/* @brief   Registers of the IProc RNG200 peripheral
  */
-struct bcm2711_trng_registers
+struct bcm_rng200_registers
 {
-	uint32_t ctrl;
-	uint32_t rng_soft_reset;
-	uint32_t rbg_soft_reset;	
-	uint32_t total_bit_count;
+  uint32_t ctrl;
+  uint32_t rng_soft_reset;
+  uint32_t rbg_soft_reset;	
+  uint32_t total_bit_count;
 
-	uint32_t total_bit_count_threshold;
-	uint32_t unused;
-	uint32_t interrupt_status;
-	uint32_t interrupt_enable;
-	
-	uint32_t fifo_data;
-	uint32_t fifo_count;
+  uint32_t total_bit_count_threshold;
+  uint32_t unused;
+  uint32_t interrupt_status;
+  uint32_t interrupt_enable;
+
+  uint32_t fifo_data;
+  uint32_t fifo_count;
 };
 
 // trng_regs->ctrl
@@ -65,10 +65,14 @@ struct bcm2711_trng_registers
 // Warmup count
 #define RNG_WARMUP_COUNT      0x40000
 
+// Virtual address to start search for an unmapped area to map the trng registers
+#define TRNG_REGS_START_VADDR    (void *)0x50000000
+
 
 /* Prototypes
  */
 int trng_hw_init(void);
+int get_fdt_device_info(void);
 void trng_reset(void);
 int trng_data_read(uint32_t *buffer, size_t words);
 

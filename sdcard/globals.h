@@ -4,14 +4,19 @@
 #include "sdcard.h"
 #include <sys/syscalls.h>
 #include <sys/types.h>
+#include <fdthelper.h>
 
 
+extern struct fdthelper helper;
+extern void *emmc_vpu_base;
+extern void *emmc_phys_base;
+extern size_t emmc_reg_size;
+extern void *mbox_vpu_base;
+extern void *mbox_phys_base;
+extern size_t mbox_reg_size;
 
-extern uint32_t mbox_base;
-extern uint32_t emmc_base;
-
-//extern uint32_t mailbuffer_virt_addr;
-//extern uint32_t mailbuffer_phys_addr;
+extern uintptr_t mbox_base;
+extern uintptr_t emmc_base;
 
 extern struct block_device actual_device;
 extern struct block_device *bdev;
@@ -30,12 +35,5 @@ extern struct Config config;
 extern int nunits;
 extern struct bdev_unit unit[5];
 
-
-/*
- *
- */
-//extern uint32 mailbuffer[64];
-
-//extern volatile uint32 *gpio;
 
 #endif
