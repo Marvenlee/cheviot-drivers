@@ -106,25 +106,25 @@ void sdcard_read(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
   xfered = 0;
   offset = req->args.read.offset;
   remaining = req->args.read.sz;  
-	  
+		  
   while (remaining > 0) {
-      block_no = ((off64_t)unit->start + (rounddown(offset, BUF_SZ)) / 512 );
-      chunk_start = offset % BUF_SZ;
-      left = BUF_SZ - chunk_start;
+    block_no = ((off64_t)unit->start + (rounddown(offset, BUF_SZ)) / 512 );
+    chunk_start = offset % BUF_SZ;
+    left = BUF_SZ - chunk_start;
 
-      if (buf_valid != true || block_no != buf_start_block_no) {
-        sc = sd_read(bdev, buf, BUF_SZ, block_no);      
-        buf_start_block_no = block_no;
-        buf_valid = true;
-      }
+    if (buf_valid != true || block_no != buf_start_block_no) {
+      sc = sd_read(bdev, buf, BUF_SZ, block_no);
+      buf_start_block_no = block_no;
+      buf_valid = true;
+    }
 
-      chunk_size = (left < remaining) ? left : remaining;
-      
-      writemsg(unit->portid, msgid, buf+chunk_start, chunk_size, xfered);
+    chunk_size = (left < remaining) ? left : remaining;
+    
+    writemsg(unit->portid, msgid, buf+chunk_start, chunk_size, xfered);
 
-      xfered += chunk_size;
-      offset += chunk_size;
-      remaining -= chunk_size;
+    xfered += chunk_size;
+    offset += chunk_size;
+    remaining -= chunk_size;
   }
 
   replymsg(unit->portid, msgid, xfered, NULL, 0);
@@ -157,28 +157,23 @@ void sdcard_write(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
 
   buf_valid = false;
   
-  #if 1  // FIXME: Writes disabled
-    replymsg(unit->portid, msgid, remaining, NULL, 0);
-    return;
-  #endif
-  
   while (remaining > 0) {
-      block_no = ((off64_t)unit->start + (offset / 512));
-      chunk_start = offset % 512;
-      left = 512 - chunk_start;
+    block_no = ((off64_t)unit->start + (offset / 512));
+    chunk_start = offset % 512;
+    left = 512 - chunk_start;
 
-      chunk_size = (left < remaining) ? left : remaining;
-      
-      if (chunk_size != 512) {
-          sc = sd_read(bdev, buf, 512, block_no);      
-      }
-      
-      readmsg(unit->portid, msgid, buf+chunk_start, chunk_size, sizeof(struct fsreq) + xfered);
-      sc = sd_write(bdev, buf, 512, block_no);
+    chunk_size = (left < remaining) ? left : remaining;
 
-      xfered += chunk_size;
-      offset += chunk_size;
-      remaining -= chunk_size;
+    if (chunk_size != 512) {
+        sc = sd_read(bdev, buf, 512, block_no);
+    }
+
+    readmsg(unit->portid, msgid, buf+chunk_start, chunk_size, sizeof(struct fsreq) + xfered);
+    sc = sd_write(bdev, buf, 512, block_no);
+
+    xfered += chunk_size;
+    offset += chunk_size;
+    remaining -= chunk_size;
   }
 
   replymsg(unit->portid, msgid, xfered, NULL, 0);
