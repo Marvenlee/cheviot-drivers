@@ -106,7 +106,11 @@ void sdcard_read(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
   xfered = 0;
   offset = req->args.read.offset;
   remaining = req->args.read.sz;  
-		  
+
+
+  // This doesn't loop for 512 byte or 1024 byte blocks, just a single read
+  // as there is a unique vfs_read/message for each block
+
   while (remaining > 0) {
     block_no = ((off64_t)unit->start + (rounddown(offset, BUF_SZ)) / 512 );
     chunk_start = offset % BUF_SZ;

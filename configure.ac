@@ -16,6 +16,9 @@ AC_CONFIG_FILES([
   null/Makefile  
   random/Makefile  
   sdcard/Makefile
+  sysinfo/Makefile
+  gpio/Makefile
+  mailbox/Makefile
   ])
   
 AC_OUTPUT

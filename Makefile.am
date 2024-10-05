@@ -19,5 +19,5 @@ else
 endif
 endif
 
-SUBDIRS = aux null random sdcard
+SUBDIRS = aux null random sdcard sysinfo gpio mailbox
 

@@ -148,11 +148,13 @@ int process_args(int argc, char *argv[])
  */
 int enable_power_and_clocks(void)
 {
-	//  init_sdcard_gpio();			// FIXME: done in bootloader
-	// rpi_mailbox_set_gpio_state(GPIO_1_8V, 0);  // FIXME: Done in bootloader
+	if (init_mailbox() != 0) {
+	  return -EIO;
+	}
 	
 	rpi_mailbox_set_power_state(MBOX_DEVICE_ID_SDCARD, MBOX_POWER_STATE_ON);
 	rpi_mailbox_set_clock_state(MBOX_CLOCK_ID_EMMC2, MBOX_CLOCK_STATE_ON);  
+  return 0;
 }
 
 
