@@ -12,6 +12,7 @@ AM_CONDITIONAL([BOARD_RASPBERRY_PI_4], [test "$BOARD" = "raspberrypi4"])
 
 AC_CONFIG_FILES([
   Makefile
+  tty/Makefile
   aux/Makefile
   null/Makefile  
   random/Makefile  

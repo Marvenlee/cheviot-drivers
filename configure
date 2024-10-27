@@ -4384,7 +4384,7 @@ else
 fi
 
 
-ac_config_files="$ac_config_files Makefile aux/Makefile null/Makefile random/Makefile sdcard/Makefile sysinfo/Makefile gpio/Makefile mailbox/Makefile echo/Makefile"
+ac_config_files="$ac_config_files Makefile tty/Makefile aux/Makefile null/Makefile random/Makefile sdcard/Makefile sysinfo/Makefile gpio/Makefile mailbox/Makefile echo/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -5137,6 +5137,7 @@ do
   case $ac_config_target in
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
+    "tty/Makefile") CONFIG_FILES="$CONFIG_FILES tty/Makefile" ;;
     "aux/Makefile") CONFIG_FILES="$CONFIG_FILES aux/Makefile" ;;
     "null/Makefile") CONFIG_FILES="$CONFIG_FILES null/Makefile" ;;
     "random/Makefile") CONFIG_FILES="$CONFIG_FILES random/Makefile" ;;

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef NULL_GLOBALS_H
-#define NULL_GLOBALS_H
+#ifndef DEV_TTY_GLOBALS_H
+#define DEV_TTY_GLOBALS_H
 
 #include <errno.h>
 #include <stdbool.h>
@@ -30,7 +30,8 @@
 #include <sys/syscalls.h>
 #include <unistd.h>
 #include <sys/fsreq.h>
-#include "null.h"
+#include "tty.h"
+
 
 
 extern int portid;

@@ -294,7 +294,7 @@ top_srcdir = @top_srcdir@
 @BOARD_RASPBERRY_PI_1_TRUE@AM_CPPFLAGS = -DBOARD_RASPBERRY_PI_1
 @BOARD_RASPBERRY_PI_1_FALSE@@BOARD_RASPBERRY_PI_4_TRUE@AM_CCASFLAGS = -r -DBOARD_RASPBERRY_PI_4 -march=armv7ve
 @BOARD_RASPBERRY_PI_1_TRUE@AM_CCASFLAGS = -r -DBOARD_RASPBERRY_PI_1 -march=armv7ve
-SUBDIRS = aux null random sdcard sysinfo gpio mailbox echo
+SUBDIRS = tty aux null random sdcard sysinfo gpio mailbox echo
 all: all-recursive
 
 .SUFFIXES:

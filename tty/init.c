@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define LOG_LEVEL_INFO
+#define LOG_LEVEL_WARN
 
 #include <dirent.h>
 #include <errno.h>
@@ -32,24 +32,17 @@
 #include <sys/syscalls.h>
 #include <sys/event.h>
 #include <sys/panic.h>
-#include "trng_hw.h"
 #include "globals.h"
-#include "random.h"
+#include "tty.h"
 
 
-/* @brief   Initialize the Random Number Generator device driver
+/*
  *
- * @param   argc, command line argument count
- * @brief   argv, command line arguments
  */
 void init (int argc, char *argv[])
 {	
   if (process_args(argc, argv) != 0) {
-    panic("process command line arguments failed");
-  }
-    
-  if (trng_hw_init() != 0) {
-    panic("random: trng_hw_init failed");
+    panic("failed to process command line arguments");
   }
 
   if (mount_device() < 0) {
@@ -64,10 +57,8 @@ void init (int argc, char *argv[])
 }
 
 
-/* @brief   Process command line arguments into the config structure
+/*
  *
- * @param   argc, command line argument count
- * @brief   argv, command line arguments
  */
 int process_args(int argc, char *argv[])
 {
@@ -75,9 +66,9 @@ int process_args(int argc, char *argv[])
 
   config.uid = 0;
   config.gid = 0;
-  config.dev = 0xdead;
   config.mode = 0777 | S_IFCHR;
-  
+  config.dev = DEV_T_DEV_TTY;
+
   if (argc < 1) {
     log_error("no command line arguments, argc:%d", argc);
     return -1;
@@ -115,20 +106,20 @@ int process_args(int argc, char *argv[])
 }
 
 
-/* @brief   Mount the device in the file system
+/*
  *
  */
 int mount_device(void)
 {
   struct stat mnt_stat;
 
-  mnt_stat.st_dev = config.dev; // Get from config, or returned by Mount() (sb index?)
+  mnt_stat.st_dev = config.dev;
   mnt_stat.st_ino = 0;
   mnt_stat.st_mode = S_IFCHR | (config.mode & 0777);
 
   // default to read/write of device-driver uid/gid.
-  mnt_stat.st_uid = config.uid;   // default device driver uid
-  mnt_stat.st_gid = config.gid;   // default gid
+  mnt_stat.st_uid = config.uid;
+  mnt_stat.st_gid = config.gid;
   mnt_stat.st_blksize = 0;
   mnt_stat.st_size = 0;
   mnt_stat.st_blocks = 0;
@@ -141,5 +132,4 @@ int mount_device(void)
 
   return 0;
 }
-
 

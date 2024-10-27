@@ -14,9 +14,6 @@
  * limitations under the License.
  */
 
-#ifndef NULL_GLOBALS_H
-#define NULL_GLOBALS_H
-
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -30,15 +27,16 @@
 #include <sys/syscalls.h>
 #include <unistd.h>
 #include <sys/fsreq.h>
-#include "null.h"
+#include "tty.h"
 
 
-extern int portid;
-extern int kq;
+int portid;
+int kq;
 
-extern struct Config config;
+struct Config config;
 
-extern bool shutdown;
+bool shutdown;
 
-#endif
+
+
 
