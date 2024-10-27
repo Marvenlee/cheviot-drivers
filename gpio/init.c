@@ -142,7 +142,7 @@ int mount_device(void)
   portid = createmsgport(config.pathname, 0, &mnt_stat, NMSG_BACKLOG);
   
   if (portid < 0) {
-    log_info("failed to create msgport");
+    log_error("failed to create msgport");
     return -1;
   }
 
@@ -163,37 +163,37 @@ int get_fdt_device_info(void)
   struct fdthelper helper;
   
   if (load_fdt("/lib/firmware/dt/rpi4.dtb", &helper) != 0) {
-    printf("cannot read rpi4.dtb\n");
+    log_error("cannot read rpi4.dtb\n");
     return -EIO;
   }
 
   // check if the file is a valid fdt
   if (fdt_check_header(helper.fdt) != 0) {
-    printf("fdt header invalid\n");
+    log_error("fdt header invalid\n");
     unload_fdt(&helper);
     return -EIO;
   }
      
   if ((offset = fdt_path_offset(helper.fdt, "/soc/gpio")) < 0) {
-    printf("cannot find /soc/gpio\n");
+    log_error("cannot find /soc/gpio\n");
     unload_fdt(&helper);
     return -EIO;
   }
   
   if (fdthelper_check_compat(helper.fdt, offset, "brcm,bcm2838-gpio") != 0) {
-    printf("not compatible\n");
+    log_error("not compatible\n");
     unload_fdt(&helper);
     return -EIO;
   }
 
   if (fdthelper_get_reg(helper.fdt, offset, &gpio_vpu_base, &gpio_reg_size) != 0) {
-    printf("cannot get reg\n");
+    log_error("cannot get reg\n");
     unload_fdt(&helper);
     return -EIO;
   } 
 
   if (fdthelper_translate_address(helper.fdt, gpio_vpu_base, &gpio_phys_base) != 0) {
-    printf("cannot translate address\n");
+    log_error("cannot translate address\n");
     unload_fdt(&helper);
     return -EIO;        
   }

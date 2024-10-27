@@ -51,10 +51,20 @@ void main(int argc, char *argv[])
    
   init(argc, argv);
 
+  struct sigaction sact;
+  sact.sa_handler = &sigterm_handler;
+  sigemptyset(&sact.sa_mask);
+  sact.sa_flags = 0;
+  
+  if (sigaction(SIGTERM, &sact, NULL) != 0) {
+    exit(-1);
+  }
+
+
   EV_SET(&setev, portid, EVFILT_MSGPORT, EV_ADD | EV_ENABLE, 0, 0, 0); 
   kevent(kq, &setev, 1,  NULL, 0, NULL);
 
-  while (1) {
+  while (!shutdown) {
     errno = 0;
     nevents = kevent(kq, NULL, 0, &ev, 1, NULL);
 
@@ -106,8 +116,9 @@ void cmd_read(msgid_t msgid, struct fsreq *req)
 	words = trng_data_read(random_buf, words);
 
   nbytes = words * sizeof(uint32_t);
-        	
-  replymsg(portid, msgid, nbytes, random_buf, nbytes);
+  
+  writemsg(portid, msgid, random_buf, nbytes, 0);
+  replymsg(portid, msgid, nbytes, NULL, 0);
 }
 
 
@@ -119,4 +130,12 @@ void cmd_write(msgid_t msgid, struct fsreq *req)
   replymsg(portid, msgid, -EPERM, NULL, 0);
 }
 
+
+/*
+ *
+ */
+void sigterm_handler(int signo)
+{
+  shutdown = true;
+}
 

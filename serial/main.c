@@ -61,8 +61,17 @@ void taskmain(int argc, char *argv[])
   msgid_t msgid;
   struct kevent ev;
   struct timespec timeout;
-
+  struct sigaction sact;
+  
   init(argc, argv);
+
+  sact.sa_handler = &sigterm_handler;
+  sigemptyset(&sact.sa_mask);
+  sact.sa_flags = 0;
+  
+  if (sigaction(SIGTERM, &sact, NULL) != 0) {
+    exit(-1);
+  }
 
   taskcreate(reader_task, NULL, 4096);
   taskcreate(writer_task, NULL, 4096);
@@ -75,7 +84,7 @@ void taskmain(int argc, char *argv[])
   // EV_SET(&ev[1], interrupt_fd, EVFILT_IRQ, EV_ADD | EV_ENABLE, 0, 0, 0); 
   kevent(kq, &ev, 1,  NULL, 0, NULL);
 
-  while (1) {
+  while (!shutdown) {
     errno = 0;
     nevents = kevent(kq, NULL, 0, &ev, 1, &timeout);
 
@@ -154,7 +163,7 @@ void cmd_tcgetattr(msgid_t msgid, struct fsreq *fsreq)
  */ 
 void cmd_tcsetattr(msgid_t msgid, struct fsreq *fsreq)
 {
-  readmsg(portid, msgid, &termios, sizeof termios, sizeof *fsreq);
+  readmsg(portid, msgid, &termios, sizeof termios, 0);
 
   // TODO: Flush any buffers, change stream mode to canonical etc
 
@@ -303,7 +312,7 @@ void writer_task (void *arg)
       sz = sizeof tx_buf - tx_free_head;
       buf = &tx_buf[tx_free_head]; 
 
-      readmsg(portid, write_msgid, buf, sz, sizeof (struct fsreq));
+      readmsg(portid, write_msgid, buf, sz, 0);
 
       nbytes_written += sz;      
       sz = remaining - sz;
@@ -323,7 +332,7 @@ void writer_task (void *arg)
       exit (8);
     }
     
-    readmsg(portid, write_msgid, buf, sz, sizeof (struct fsreq) + nbytes_written);
+    readmsg(portid, write_msgid, buf, sz, nbytes_written);
     nbytes_written += sz;
 
     tx_free_head = (tx_free_head + nbytes_written) % sizeof tx_buf;
@@ -515,5 +524,12 @@ void echo(uint8_t ch)
 }
 
 
+/*
+ *
+ */
+void sigterm_handler(int signo)
+{
+  shutdown = true;
+}
 
 

@@ -54,5 +54,7 @@ void init(int argc, char *argv[]);
 int process_args(int argc, char *argv[]);
 int mount_device(void);
 
+void sigterm_handler(int signo);
+
 #endif
 

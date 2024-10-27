@@ -55,6 +55,7 @@ int compare_timer(struct timer_wait * tw);
       if (stop_if_true) {                                                      \
         break;                                                                 \
       }                                                                        \
+      delay_microsecs(10);                                                     \
     } while (!compare_timer(&tw));                                             \
   } while (0);
 

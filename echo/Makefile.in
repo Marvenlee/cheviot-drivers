@@ -86,8 +86,8 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-sbin_PROGRAMS = sdcard$(EXEEXT)
-subdir = sdcard
+sbin_PROGRAMS = echo$(EXEEXT)
+subdir = echo
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -98,12 +98,9 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(sbindir)"
 PROGRAMS = $(sbin_PROGRAMS)
-am_sdcard_OBJECTS = debug.$(OBJEXT) emmc.$(OBJEXT) emmc_init.$(OBJEXT) \
-	emmc_misc.$(OBJEXT) emmc_rw.$(OBJEXT) emmc_globals.$(OBJEXT) \
-	globals.$(OBJEXT) init.$(OBJEXT) main.$(OBJEXT) mmio.$(OBJEXT) \
-	profiling.$(OBJEXT) timer.$(OBJEXT)
-sdcard_OBJECTS = $(am_sdcard_OBJECTS)
-sdcard_DEPENDENCIES =
+am_echo_OBJECTS = globals.$(OBJEXT) init.$(OBJEXT) main.$(OBJEXT)
+echo_OBJECTS = $(am_echo_OBJECTS)
+echo_LDADD = $(LDADD)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -119,12 +116,8 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/debug.Po ./$(DEPDIR)/emmc.Po \
-	./$(DEPDIR)/emmc_globals.Po ./$(DEPDIR)/emmc_init.Po \
-	./$(DEPDIR)/emmc_misc.Po ./$(DEPDIR)/emmc_rw.Po \
-	./$(DEPDIR)/globals.Po ./$(DEPDIR)/init.Po ./$(DEPDIR)/main.Po \
-	./$(DEPDIR)/mmio.Po ./$(DEPDIR)/profiling.Po \
-	./$(DEPDIR)/timer.Po
+am__depfiles_remade = ./$(DEPDIR)/globals.Po ./$(DEPDIR)/init.Po \
+	./$(DEPDIR)/main.Po
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -138,8 +131,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(sdcard_SOURCES)
-DIST_SOURCES = $(sdcard_SOURCES)
+SOURCES = $(echo_SOURCES)
+DIST_SOURCES = $(echo_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -256,24 +249,10 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-sdcard_SOURCES = \
-  debug.c \
-  emmc.c \
-  emmc_init.c \
-  emmc_misc.c \
-  emmc_rw.c \
-  emmc_globals.c \
-  globals.c \
-  init.c \
-  main.c \
-  mmio.c \
-  profiling.c \
-  timer.c 
-
-sdcard_LDADD = -lprofiling -lrpimailbox -lrpigpio -lrpihal -lfdthelper -lfdt
-AM_CFLAGS = -O2 -std=c99 -g0 -Wall
-AM_CPPFLAGS = -I$(srcdir)
-AM_CCASFLAGS = -r -I$(srcdir)
+echo_SOURCES = globals.c init.c main.c
+AM_CFLAGS = -O2 -std=c99 -g0
+AM_CPPFLAGS = -I$(srcdir) 
+AM_CCASFLAGS = -r -I$(srcdir) 
 all: all-am
 
 .SUFFIXES:
@@ -287,9 +266,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign sdcard/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign echo/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign sdcard/Makefile
+	  $(AUTOMAKE) --foreign echo/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
@@ -350,9 +329,9 @@ uninstall-sbinPROGRAMS:
 clean-sbinPROGRAMS:
 	-test -z "$(sbin_PROGRAMS)" || rm -f $(sbin_PROGRAMS)
 
-sdcard$(EXEEXT): $(sdcard_OBJECTS) $(sdcard_DEPENDENCIES) $(EXTRA_sdcard_DEPENDENCIES) 
-	@rm -f sdcard$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(sdcard_OBJECTS) $(sdcard_LDADD) $(LIBS)
+echo$(EXEEXT): $(echo_OBJECTS) $(echo_DEPENDENCIES) $(EXTRA_echo_DEPENDENCIES) 
+	@rm -f echo$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(echo_OBJECTS) $(echo_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -360,18 +339,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/debug.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/emmc.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/emmc_globals.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/emmc_init.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/emmc_misc.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/emmc_rw.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/globals.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/init.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmio.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/profiling.Po@am__quote@ # am--include-marker
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/timer.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -521,18 +491,9 @@ clean: clean-am
 clean-am: clean-generic clean-sbinPROGRAMS mostlyclean-am
 
 distclean: distclean-am
-		-rm -f ./$(DEPDIR)/debug.Po
-	-rm -f ./$(DEPDIR)/emmc.Po
-	-rm -f ./$(DEPDIR)/emmc_globals.Po
-	-rm -f ./$(DEPDIR)/emmc_init.Po
-	-rm -f ./$(DEPDIR)/emmc_misc.Po
-	-rm -f ./$(DEPDIR)/emmc_rw.Po
-	-rm -f ./$(DEPDIR)/globals.Po
+		-rm -f ./$(DEPDIR)/globals.Po
 	-rm -f ./$(DEPDIR)/init.Po
 	-rm -f ./$(DEPDIR)/main.Po
-	-rm -f ./$(DEPDIR)/mmio.Po
-	-rm -f ./$(DEPDIR)/profiling.Po
-	-rm -f ./$(DEPDIR)/timer.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -578,18 +539,9 @@ install-ps-am:
 installcheck-am:
 
 maintainer-clean: maintainer-clean-am
-		-rm -f ./$(DEPDIR)/debug.Po
-	-rm -f ./$(DEPDIR)/emmc.Po
-	-rm -f ./$(DEPDIR)/emmc_globals.Po
-	-rm -f ./$(DEPDIR)/emmc_init.Po
-	-rm -f ./$(DEPDIR)/emmc_misc.Po
-	-rm -f ./$(DEPDIR)/emmc_rw.Po
-	-rm -f ./$(DEPDIR)/globals.Po
+		-rm -f ./$(DEPDIR)/globals.Po
 	-rm -f ./$(DEPDIR)/init.Po
 	-rm -f ./$(DEPDIR)/main.Po
-	-rm -f ./$(DEPDIR)/mmio.Po
-	-rm -f ./$(DEPDIR)/profiling.Po
-	-rm -f ./$(DEPDIR)/timer.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 

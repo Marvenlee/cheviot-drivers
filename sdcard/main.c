@@ -23,6 +23,8 @@
 #include <time.h>
 #include <sys/time.h>
 #include <sys/param.h>
+#include <sys/profiling.h>
+
 
 /* @brief   The SDCard block device driver
  *
@@ -44,13 +46,22 @@ int main(int argc, char *argv[])
    
   init(argc, argv);  
 
-  while (1) {
+  struct sigaction sact;
+  sact.sa_handler = &sigterm_handler;
+  sigemptyset(&sact.sa_mask);
+  sact.sa_flags = 0;
+  
+  if (sigaction(SIGTERM, &sact, NULL) != 0) {
+    exit(-1);
+  }
+
+  while (!shutdown) {
     kevent(kq, NULL, 0, &ev, 1, NULL);
-		
-    portid = ev.ident;
-    unit = ev.udata;
-    
+		    
     if (ev.filter == EVFILT_MSGPORT) {
+      portid = ev.ident;
+      unit = ev.udata;
+
       while ((sc = getmsg(portid, &msgid, &req, sizeof req)) == sizeof req) {
         switch (req.cmd) {
           case CMD_READ:
@@ -59,6 +70,10 @@ int main(int argc, char *argv[])
 
           case CMD_WRITE:
             sdcard_write(unit, msgid, &req);
+            break;
+
+          case CMD_SENDMSG:
+            sdcard_sendmsg(unit, msgid, &req);
             break;
 
           default:
@@ -72,6 +87,8 @@ int main(int argc, char *argv[])
         log_error("sdcard: getmsg sc=%d %s", sc, strerror(errno));
         exit(EXIT_FAILURE);
       }
+    } else {
+      log_warn("unhandled kevent filter:%d", ev.filter);
     }
   }
 
@@ -101,15 +118,16 @@ void sdcard_read(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
   size_t chunk_size;  
   size_t left;
   size_t xfered;
+  size_t block_read_sz;
   int sc;
+
+  if (profiling) {
+    clock_gettime(CLOCK_MONOTONIC_RAW, &profile_read_start_ts);
+  }
 
   xfered = 0;
   offset = req->args.read.offset;
   remaining = req->args.read.sz;  
-
-
-  // This doesn't loop for 512 byte or 1024 byte blocks, just a single read
-  // as there is a unique vfs_read/message for each block
 
   while (remaining > 0) {
     block_no = ((off64_t)unit->start + (rounddown(offset, BUF_SZ)) / 512 );
@@ -132,6 +150,12 @@ void sdcard_read(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
   }
 
   replymsg(unit->portid, msgid, xfered, NULL, 0);
+
+  if (profiling) {
+    clock_gettime(CLOCK_MONOTONIC_RAW, &profile_read_end_ts);
+    profiling_microsecs(&profiling_reads, &profile_read_start_ts, &profile_read_end_ts);
+    profiling_read_counter++;
+  }
 }
 
 
@@ -143,6 +167,10 @@ void sdcard_read(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
  *
  * TODO: Check for block alignment of offset and size
  * TODO: Check within range of unit
+ *
+ * FIXME: We break down writes into 512 byte chunks as larger writes
+ * seem to cause an error where the controller is reinitialized by
+ * calling sd)card_init.
  */
 void sdcard_write(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
 {
@@ -153,7 +181,12 @@ void sdcard_write(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
   size_t chunk_size;  
   size_t left;
   size_t xfered;
+  size_t block_write_sz;
   int sc;
+
+  if (profiling) {
+    clock_gettime(CLOCK_MONOTONIC_RAW, &profile_write_start_ts);  
+  }
 
   xfered = 0;
   offset = req->args.write.offset;
@@ -164,16 +197,23 @@ void sdcard_write(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
   while (remaining > 0) {
     block_no = ((off64_t)unit->start + (offset / 512));
     chunk_start = offset % 512;
-    left = 512 - chunk_start;
+    left = BUF_SZ - chunk_start;
 
     chunk_size = (left < remaining) ? left : remaining;
 
-    if (chunk_size != 512) {
-        sc = sd_read(bdev, buf, 512, block_no);
+    block_write_sz = roundup(chunk_start + chunk_size, 512);
+
+    if (chunk_start != 0 || (chunk_size % 512) != 0) {
+      for (int xfered = 0; xfered < block_write_sz; xfered += 512) {
+        sc = sd_read(bdev, (uint8_t *)buf + xfered, 512, block_no + xfered/512);
+      }    
     }
 
-    readmsg(unit->portid, msgid, buf+chunk_start, chunk_size, sizeof(struct fsreq) + xfered);
-    sc = sd_write(bdev, buf, 512, block_no);
+    readmsg(unit->portid, msgid, buf+chunk_start, chunk_size, xfered);
+
+    for (int xfered = 0; xfered < block_write_sz; xfered += 512) {
+      sc = sd_write(bdev, (uint8_t *)buf + xfered, 512, block_no + xfered/512);
+    }    
 
     xfered += chunk_size;
     offset += chunk_size;
@@ -181,5 +221,85 @@ void sdcard_write(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
   }
 
   replymsg(unit->portid, msgid, xfered, NULL, 0);
+
+  if (profiling) {    
+    clock_gettime(CLOCK_MONOTONIC_RAW, &profile_write_end_ts);  
+    profiling_microsecs(&profiling_writes, &profile_write_start_ts, &profile_write_end_ts);
+    profiling_write_counter++;    
+  }
+}
+
+
+/*
+ *
+ */ 
+void sdcard_sendmsg(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
+{
+  int sc;
+  size_t req_sz;
+  size_t resp_sz;
+  size_t max_resp_sz;
+  int subclass;
+  char *cmd;
+  
+  subclass = req->args.sendmsg.subclass;
+  req_sz = req->args.sendmsg.ssize;  
+  max_resp_sz = req->args.sendmsg.rsize;  
+
+  if (req_sz > sizeof req_buf) {
+    replymsg(unit->portid, msgid, -E2BIG, NULL, 0);
+    return;
+  }
+
+  readmsg(unit->portid, msgid, req_buf, req_sz, 0);
+  
+  req_buf[req_sz] = '\0';  
+  resp_buf[0] = '\0';
+
+  cmd = strtok(req_buf, " ");
+  
+  if (!(cmd == NULL || cmd[0] == '\0')) {
+    if (strcmp("help", cmd) == 0) {
+      cmd_help(unit, msgid, req);
+    } else if (strcmp("profiling", cmd) == 0) {
+      cmd_profiling(unit, msgid, req);
+    } else if (strcmp("debug", cmd) == 0) {
+      cmd_debug(unit, msgid, req);
+    } else {
+      strlcpy(resp_buf, "ERROR: unknown command\n", sizeof resp_buf);   
+    }
+  } else {
+    strlcpy(resp_buf, "ERROR: no command\n", sizeof resp_buf);   
+  }
+  
+  resp_sz = strlen(resp_buf);
+      
+  writemsg(unit->portid, msgid, resp_buf, resp_sz, 0);
+  replymsg(unit->portid, msgid, resp_sz, NULL, 0);  
+}
+
+
+/*
+ *
+ */
+void cmd_help(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
+{
+  strlcpy (resp_buf, "OK: help\n"
+                     "help              - get command list\n"
+                     "profiling stats   - get statistics\n"
+                     "profiling enable  - enable profiling\n" 
+                     "profiling disable - diable profiling\n" 
+                     "profiling reset   - reset statistics\n"
+                     "debug registers   - dump registers\n",
+                     sizeof resp_buf);
+}
+
+
+/*
+ *
+ */
+void sigterm_handler(int signo)
+{
+  shutdown = true;
 }
 

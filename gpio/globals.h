@@ -47,6 +47,7 @@ extern void *gpio_phys_base;
 
 extern struct bcm2711_gpio_registers *gpio_regs;
 
+extern bool shutdown;
 
 #endif
 

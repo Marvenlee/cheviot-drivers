@@ -32,6 +32,9 @@
 #include <sys/syscalls.h>
 #include <sys/event.h>
 #include <sys/panic.h>
+#include <libfdt.h>
+#include <fdthelper.h>
+#include <fdt.h>
 #include "aux_uart.h"
 #include "globals.h"
 
@@ -69,12 +72,24 @@ void init (int argc, char *argv[])
 	termios.c_cc[VDISCARD] = 0x0F;  // SI  (ctrl-o)
 	termios.c_cc[VSTATUS]  = 0x14;  // DC4 (ctrl-t)  
   
+  tx_head = 0;
+  rx_head = 0;
+  
+  tx_free_head = 0;
+  rx_free_head = 0;
+  
   tx_sz = 0;
   rx_sz = 0;
+  
   tx_free_sz = sizeof tx_buf;
   rx_free_sz = sizeof rx_buf;
 
   if (process_args(argc, argv) != 0) {
+    exit(EXIT_FAILURE);
+  }
+
+  if (get_fdt_device_info() != 0) {
+    log_error("Failed to read device tree");
     exit(EXIT_FAILURE);
   }
     
@@ -172,6 +187,57 @@ int process_args(int argc, char *argv[])
 
   strncpy(config.pathname, argv[optind], sizeof config.pathname);
   return 0;
+}
+
+
+/* @brief   Read the device tree file and gather aux uart configuration
+ *
+ * Need some way of knowing which dtb to use
+ * Specify on command line?  or add a kernel sys_get_dtb_name()
+ * Passed in bootinfo.
+ */
+int get_fdt_device_info(void)
+{
+  int offset;
+  int len;
+  
+  if (load_fdt("/lib/firmware/dt/rpi4.dtb", &helper) != 0) {
+    return -EIO;
+  }
+
+  // check if the file is a valid fdt
+  if (fdt_check_header(helper.fdt) != 0) {
+    unload_fdt(&helper);
+    return -EIO;
+  }
+     
+  if ((offset = fdt_path_offset(helper.fdt, "/soc/aux")) < 0) {
+    unload_fdt(&helper);
+    return -EIO;
+  }
+  
+  if (fdthelper_check_compat(helper.fdt, offset, "brcm,bcm2835-aux") != 0) {
+    unload_fdt(&helper);
+    return -EIO;
+  }
+
+  if (fdthelper_get_reg(helper.fdt, offset, &aux_vpu_base, &aux_reg_size) != 0) {
+    unload_fdt(&helper);
+    return -EIO;
+  } 
+
+  if (fdthelper_translate_address(helper.fdt, aux_vpu_base, &aux_phys_base) != 0) {
+    unload_fdt(&helper);
+    return -EIO;        
+  }
+
+  if (fdthelper_get_irq(helper.fdt, offset, &aux_irq) != 0) {
+    unload_fdt(&helper);
+    return -EIO;
+  }   
+
+  unload_fdt(&helper);
+  return 0;  
 }
 
 

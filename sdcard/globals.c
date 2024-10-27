@@ -1,6 +1,7 @@
 #include "globals.h"
 #include "sdcard.h"
 #include <sys/syscalls.h>
+#include <sys/profiling.h>
 #include <sys/types.h>
 #include <fdthelper.h>
 
@@ -31,5 +32,27 @@ struct Config config;
 
 int nunits;                     // number of discovered units and partitions.
 struct bdev_unit unit[5];      // Maximum 5 units, e.g. sda, sda1, sda2, sda3 and sda5
+
+// sendmsg
+
+char req_buf[ARG_MAX];
+char resp_buf[ARG_MAX];
+
+// Profiling
+bool profiling = true;
+struct profiling_samples profiling_reads;
+
+struct profiling_samples profiling_writes;
+struct profiling_samples profiling_kevents;
+int profiling_read_counter;
+int profiling_write_counter;
+struct timespec profile_read_start_ts;
+struct timespec profile_read_end_ts;
+struct timespec profile_write_start_ts;
+struct timespec profile_write_end_ts;
+
+bool shutdown;
+
+
 
 

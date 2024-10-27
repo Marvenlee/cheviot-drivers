@@ -39,5 +39,6 @@ struct Config config;
 char req_buf[ARG_MAX];
 char resp_buf[ARG_MAX];
 
+bool shutdown;
 
 

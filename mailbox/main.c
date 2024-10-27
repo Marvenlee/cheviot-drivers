@@ -46,11 +46,20 @@ void main(int argc, char *argv[])
   struct fsreq req;
   int nevents;
   struct kevent ev;
+  struct sigaction sact;
  
   log_info("mailbox driver started");
  
  	init(argc, argv);
+
+  sact.sa_handler = &sigterm_handler;
+  sigemptyset(&sact.sa_mask);
+  sact.sa_flags = 0;
   
+  if (sigaction(SIGTERM, &sact, NULL) != 0) {
+    exit(-1);
+  }
+    
   EV_SET(&ev, portid, EVFILT_MSGPORT, EV_ADD | EV_ENABLE, 0, 0, 0); 
   kevent(kq, &ev, 1,  NULL, 0, NULL);
 
@@ -98,7 +107,7 @@ void cmd_sendmsg(int portid, msgid_t msgid, struct fsreq *req)
     return;
   }
 
-  req_sz = readmsg(portid, msgid, &mailbox_req, sizeof mailbox_req, sizeof *req);
+  req_sz = readmsg(portid, msgid, &mailbox_req, sizeof mailbox_req, 0);
   
   if (req_sz < sizeof mailbox_req) {
     replymsg(portid, msgid, -EINVAL, NULL, 0);
@@ -128,5 +137,14 @@ void cmd_sendmsg(int portid, msgid_t msgid, struct fsreq *req)
   
 
   replymsg(portid, msgid, sc, NULL, 0);
+}
+
+
+/*
+ *
+ */
+void sigterm_handler(int signo)
+{
+  shutdown = true;
 }
 

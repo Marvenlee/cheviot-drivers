@@ -20,31 +20,38 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-
+/*
+ * NOTE: See BCM2385 datasheet errata page on eLinux website for changes in these
+ * macros compared to what is documented by Broadcom.
+ */
+ 
 // Constants and macros
 #define EVENT_AUX_INT           1       // Event bit to set on an interrupt occuring
+// AUX_UART_IRQ is (29 + 96) for Raspberry Pi 4
 
 #define AUX_UART_BAUD           115200
-#define AUX_UART_IRQ            (29 + 96)
+
 #define AUX_UART_GPIO_ALT_FN    FN5         // Use alternate function FN5 for GPIO 14 and 15
 #define AUX_UART_CLOCK          500000000
 #define AUX_MU_BAUD(baud)       ((AUX_UART_CLOCK/(baud*8))-1)
 
-#define IER_TX_INT_EN           (1<<0)
-#define IER_RX_INT_EN           (1<<1)
+#define IER_TX_INT_EN           (1<<1)  // Swapped, see errata
+#define IER_RX_INT_EN           (1<<0)
 
-#define IIR_RX                  (1<<2)  // On read indicates Rx FIFO has data, on write clears Rx FIFO
-#define IIR_TX                  (1<<1)  // On read indicates Tx FIFO is empty, on write clears Tx FIFO
+// TODO: Add IIR read values and meanings for bits 1 and 2.
+#define IIR_TX                  (1<<1)  // on write clears Tx FIFO
+#define IIR_RX                  (1<<2)  // on write clears Rx FIFO
 #define IIR_PENDING             (1<<0)
 
 #define CNTL_RX_EN              (1<<0)
 #define CNTL_TX_EN              (1<<1)
 
-#define LCR_8_BIT               (1<<0)
-#define LCR_7_BIT               (0<<0)
+#define LCR_8_BIT               (0x03)
+#define LCR_7_BIT                  (0)
 
 #define LSR_RX_READY            (1<<0)
 #define LSR_TX_EMPTY            (1<<5)
+
 
 // Virtual address to search from when mapping the device registers
 #define AUX_REGS_START_VADDR  (void *)0x50000000
@@ -68,7 +75,6 @@ struct bcm2835_aux_registers
   uint32_t mu_stat_reg;
   uint32_t mu_baud_reg;
 };
-
 
 
 #endif

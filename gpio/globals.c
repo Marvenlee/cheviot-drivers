@@ -45,4 +45,5 @@ void *gpio_phys_base;
 
 struct bcm2711_gpio_registers *gpio_regs;
 
+bool shutdown;
 

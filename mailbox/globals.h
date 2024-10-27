@@ -48,6 +48,7 @@ extern void *mailbox_base;
 extern uint32_t *mailbuffer;
 extern uint32_t *mailbuffer_phys;
 
+extern bool shutdown;
 
 #endif
 

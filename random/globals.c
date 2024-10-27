@@ -40,6 +40,7 @@ uint32_t random_buf[256];
 
 struct Config config;
 
+bool shutdown;
 
 
 

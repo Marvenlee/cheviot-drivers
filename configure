@@ -4384,7 +4384,7 @@ else
 fi
 
 
-ac_config_files="$ac_config_files Makefile aux/Makefile null/Makefile random/Makefile sdcard/Makefile sysinfo/Makefile gpio/Makefile mailbox/Makefile"
+ac_config_files="$ac_config_files Makefile aux/Makefile null/Makefile random/Makefile sdcard/Makefile sysinfo/Makefile gpio/Makefile mailbox/Makefile echo/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -5144,6 +5144,7 @@ do
     "sysinfo/Makefile") CONFIG_FILES="$CONFIG_FILES sysinfo/Makefile" ;;
     "gpio/Makefile") CONFIG_FILES="$CONFIG_FILES gpio/Makefile" ;;
     "mailbox/Makefile") CONFIG_FILES="$CONFIG_FILES mailbox/Makefile" ;;
+    "echo/Makefile") CONFIG_FILES="$CONFIG_FILES echo/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

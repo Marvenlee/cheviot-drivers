@@ -14,69 +14,42 @@
  * limitations under the License.
  */
 
-#ifndef SERIAL_GLOBALS_H
-#define SERIAL_GLOBALS_H
+#ifndef NULL_GLOBALS_H
+#define NULL_GLOBALS_H
 
-#include <dirent.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/event.h>
 #include <sys/mount.h>
 #include <sys/signal.h>
 #include <sys/stat.h>
 #include <sys/syscalls.h>
 #include <unistd.h>
 #include <sys/fsreq.h>
-#include <sys/termios.h>
-#include "pl011.h"
+#include "echo.h"
+
 
 
 extern int portid;
 extern int kq;
-extern int interrupt_fd;
-
-extern int sid;
-
-extern int tx_head;
-extern int tx_sz;
-extern int tx_free_head;
-extern int tx_free_sz;
-extern uint8_t tx_buf[4096];
-
-extern int rx_head;
-extern int rx_sz;
-extern int rx_free_head;
-extern int rx_free_sz;
-extern uint8_t rx_buf[4096];
-
-extern int line_cnt;
-extern int line_end;
-
-extern bool write_pending;
-extern bool read_pending;
-extern int read_msgid;
-extern int write_msgid;
-
-extern Rendez tx_rendez;
-extern Rendez rx_rendez;
-
-extern Rendez tx_free_rendez;
-extern Rendez rx_data_rendez;
-
-extern Rendez write_cmd_rendez;
-extern Rendez read_cmd_rendez;
-
-extern struct fsreq read_fsreq;
-extern struct fsreq write_fsreq;
-
-extern struct termios termios;
 
 extern struct Config config;
 
+extern uint32_t tx_head;
+extern uint32_t tx_sz;
+extern uint32_t tx_free_head;
+extern uint32_t tx_free_sz;
+
+extern uint8_t tx_buf[TX_BUF_SZ];
+
 extern bool shutdown;
+
+
+
 
 #endif
 

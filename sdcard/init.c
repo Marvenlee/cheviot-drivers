@@ -90,13 +90,12 @@ void init(int argc, char *argv[])
 }
 
 
-
 /*
-  // -u default user-id
-  // -g default gid
-  // -m default mod bits
-  // -D debug level ?
-  // mount path (default arg)
+ * -u default user-id
+ * -g default gid
+ * -m default mod bits
+ * -D debug level ?
+ * mount path (default arg)
  */
 int process_args(int argc, char *argv[]) 
 {
@@ -148,12 +147,15 @@ int process_args(int argc, char *argv[])
  */
 int enable_power_and_clocks(void)
 {
+#if 0
 	if (init_mailbox() != 0) {
 	  return -EIO;
 	}
 	
 	rpi_mailbox_set_power_state(MBOX_DEVICE_ID_SDCARD, MBOX_POWER_STATE_ON);
 	rpi_mailbox_set_clock_state(MBOX_CLOCK_ID_EMMC2, MBOX_CLOCK_STATE_ON);  
+#endif
+
   return 0;
 }
 
@@ -178,14 +180,6 @@ int map_io_registers(void)
     return -ENOMEM;
   }  
 
-  mbox_base = (uintptr_t)map_phys_mem(mbox_phys_base, mbox_reg_size,
-                           PROT_READ | PROT_WRITE | CACHE_UNCACHEABLE, 
-                           MBOX_REGS_START_VADDR);
-
-  if (mbox_base == (uintptr_t)NULL) {
-    return -ENOMEM;
-  }  
-
   return 0;
 }
 
@@ -198,61 +192,38 @@ int get_fdt_device_info(void)
   int offset;
   int len;
   
-  // Need some way of knowing which dtb to use
-  // Specify on command line?  or add a kernel sys_get_dtb_name()
-  // Passed in bootinfo.
-  
   if (load_fdt("/lib/firmware/dt/rpi4.dtb", &helper) != 0) {
+    log_error("cannot open device tree file rpi4.dtb");
     return -EIO;
   }
 
-  // check if the file is a valid fdt
   if (fdt_check_header(helper.fdt) != 0) {
+    log_error("fdt check failed");
     unload_fdt(&helper);
     return -EIO;
   }
 
-  // Get the emmc base address       
   if ((offset = fdt_path_offset(helper.fdt, "/soc/emmc2")) < 0) {
+    log_error("cannot find emmc2 in device tree, rc:%d", offset);
     unload_fdt(&helper);
     return -EIO;
   }
 
   if (fdthelper_check_compat(helper.fdt, offset, "brcm,bcm2711-emmc2") != 0) {
+    log_error("not compatible");
     unload_fdt(&helper);
     return -EIO;
   }
 
   if (fdthelper_get_reg(helper.fdt, offset, &emmc_vpu_base, &emmc_reg_size) != 0) {
+    log_error("cannot get register");
     unload_fdt(&helper);
     return -EIO;
   } 
 
 
   if (fdthelper_translate_address(helper.fdt, emmc_vpu_base, &emmc_phys_base) != 0) {
-    unload_fdt(&helper);
-    return -EIO;        
-  }
-
-  // Get the mailbox base address  
-
-  if ((offset = fdt_path_offset(helper.fdt, "/soc/mailbox")) < 0) {
-    unload_fdt(&helper);
-    return -EIO;
-  }
-
-  if (fdthelper_check_compat(helper.fdt, offset, "brcm,bcm2835-mbox") != 0) {
-    unload_fdt(&helper);
-    return -EIO;
-  }
-
-  if (fdthelper_get_reg(helper.fdt, offset, &mbox_vpu_base, &mbox_reg_size) != 0) {
-    unload_fdt(&helper);
-    return -EIO;
-  } 
-
-
-  if (fdthelper_translate_address(helper.fdt, mbox_vpu_base, &mbox_phys_base) != 0) {
+    log_error("cannot translate address");
     unload_fdt(&helper);
     return -EIO;        
   }
@@ -260,9 +231,6 @@ int get_fdt_device_info(void)
   unload_fdt(&helper);
   return 0;  
 }
-
-
-
 
 
 /* @brief   Create a block special device mount covering the whole disk
@@ -276,7 +244,10 @@ int create_device_mount(void)
   struct stat mnt_stat;
   struct kevent ev;
   
-  snprintf(unit[0].path, sizeof unit[0].path, "%s", config.pathname);
+  if (snprintf(unit[0].path, sizeof unit[0].path, "%s", config.pathname) >= sizeof unit[0].path) {
+    return -1;
+  }
+
   unit[0].start = 0;
   unit[0].size = 33554432ull * 512;  // Where has 3354432 came from ?  4GB ?
   unit[0].blocks = 33554432ull;
@@ -335,7 +306,11 @@ int create_partition_mounts(void)
 
   for (int t=0; t<4; t++) {
     if (mbr_partition_table[t].type != 0) {
-      snprintf(unit[nunits].path, sizeof unit[nunits].path, "%s%d", config.pathname, nunits);
+
+      if (snprintf(unit[nunits].path, sizeof unit[nunits].path, "%s%d", config.pathname, nunits) >= sizeof unit[nunits].path) {
+        return -1;
+      }
+
       unit[nunits].start = mbr_partition_table[t].start_lba;
       unit[nunits].size = mbr_partition_table[t].size * 512;
       unit[nunits].blocks = mbr_partition_table[t].size;

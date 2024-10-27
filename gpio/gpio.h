@@ -96,7 +96,7 @@ int init_gpio_regs(void);
 void cmd_sendmsg(int portid, msgid_t msgid, struct fsreq *req);
 int cmd_set_gpio(int portid, msgid_t msgid, struct msg_gpio_req *gpio_req);
 int cmd_get_gpio(int portid, msgid_t msgid, struct msg_gpio_req *gpio_req);
-
+void sigterm_handler(int signo);
 
 #endif
 

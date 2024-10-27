@@ -3,6 +3,7 @@
 
 #include "sdcard.h"
 #include <sys/syscalls.h>
+#include <sys/profiling.h>
 #include <sys/types.h>
 #include <fdthelper.h>
 
@@ -35,5 +36,20 @@ extern struct Config config;
 extern int nunits;
 extern struct bdev_unit unit[5];
 
+extern char req_buf[ARG_MAX];
+extern char resp_buf[ARG_MAX];
+
+extern bool profiling;
+extern struct profiling_samples profiling_reads;
+extern struct profiling_samples profiling_writes;
+extern struct profiling_samples profiling_kevents;
+extern int profiling_read_counter;
+extern int profiling_write_counter;
+extern struct timespec profile_read_start_ts;
+extern struct timespec profile_read_end_ts;
+extern struct timespec profile_write_start_ts;
+extern struct timespec profile_write_end_ts;
+
+extern bool shutdown;
 
 #endif

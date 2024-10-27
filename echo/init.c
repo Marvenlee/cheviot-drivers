@@ -32,13 +32,8 @@
 #include <sys/syscalls.h>
 #include <sys/event.h>
 #include <sys/panic.h>
-#include <sys/rpi_mailbox.h>
-#include <fdthelper.h>
-#include <sys/param.h>
-#include <machine/param.h>
-#include <libfdt.h>
-#include "mailbox.h"
 #include "globals.h"
+#include "echo.h"
 
 
 /*
@@ -50,13 +45,10 @@ void init (int argc, char *argv[])
     panic("failed to process command line arguments");
   }
 
-  if (get_fdt_device_info() != 0) {
-    panic("failed to read device tree blob");
-  }
-
-  if (init_mailbox() != 0) {
-    panic("init mailbox failed");
-  }
+  tx_head = 0;
+  tx_sz = 0;
+  tx_free_head = 0;
+  tx_free_sz = TX_BUF_SZ;
 
   if (mount_device() < 0) {
     panic("mount device failed");
@@ -140,102 +132,9 @@ int mount_device(void)
   portid = createmsgport(config.pathname, 0, &mnt_stat, NMSG_BACKLOG);
   
   if (portid < 0) {
-    log_error("failed to create msgport");
     return -1;
   }
 
   return 0;
 }
-
-
-/* @brief   Read the device tree file and gather gpio configuration
- *
- * Need some way of knowing which dtb to use
- * Specify on command line?  or add a kernel sys_get_dtb_name()
- * Passed in bootinfo.
- */
-int get_fdt_device_info(void)
-{
-  int offset;
-  int len;
-  struct fdthelper helper;
-  
-  if (load_fdt("/lib/firmware/dt/rpi4.dtb", &helper) != 0) {
-    log_error("failed to open device tree\n");
-    return -EIO;
-  }
-
-  // check if the file is a valid fdt
-  if (fdt_check_header(helper.fdt) != 0) {
-    log_error("header not valid\n");
-    unload_fdt(&helper);
-    return -EIO;
-  }
-     
-  if ((offset = fdt_path_offset(helper.fdt, "/soc/mailbox")) < 0) {
-    log_error("failed to find /soc/mailbox\n");
-    unload_fdt(&helper);
-    return -EIO;
-  }
-  
-  if (fdthelper_check_compat(helper.fdt, offset, "brcm,bcm2835-mbox") != 0) {
-    log_error("mailbox not compatible\n");
-    unload_fdt(&helper);
-    return -EIO;
-  }
-
-  if (fdthelper_get_reg(helper.fdt, offset, &mailbox_vpu_base, &mailbox_reg_size) != 0) {
-    log_error("failed to get register base");
-    unload_fdt(&helper);
-    return -EIO;
-  } 
-
-  if (fdthelper_translate_address(helper.fdt, mailbox_vpu_base, &mailbox_phys_base) != 0) {
-    log_error("failed to translate register base");
-    unload_fdt(&helper);
-    return -EIO;        
-  }
-
-  unload_fdt(&helper);
-  return 0;  
-}
-
-
-int init_mailbox(void)
-{
-#if 1
-  void *mailbox_phys_page;
-  
-  mailbox_phys_page = (void *)rounddown((uintptr_t)mailbox_phys_base, PAGE_SIZE);
-
-  // map mailbuffer registers
-  mailbox_base = virtualallocphys((void *)0x60000000, 4096, PROT_READWRITE, mailbox_phys_page);
-
-  if (mailbox_base == NULL) {
-    return -1;
-  }
-  hal_set_mbox_base((void *)mailbox_base + MBOX_BASE_OFFSET);
-
-#else
-  mailbox_base = map_phys_mem(mailbox_base_page, mailbox_regs_size, PROT_READWRITE, (void *)0x60000000);
-#endif
-  
-  mailbuffer = virtualalloc((void *)0x70000000, 4096, PROT_READWRITE);
-
-  if (mailbuffer == NULL) {
-    return -1;
-  }
-
-  mailbuffer_phys = virtualtophysaddr(mailbuffer);
-    
-  return 0;
-}
-
-
-
-
-
-
-
-
 

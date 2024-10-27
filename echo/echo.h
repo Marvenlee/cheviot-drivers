@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef _MAILBOX_H
-#define _MAILBOX_H
+#ifndef ECHO_H
+#define ECHO_H
 
 #include <stdint.h>
 #include <stddef.h>
@@ -28,18 +28,13 @@
 #include <sys/syscalls.h>
 #include <sys/syslimits.h>
 #include <machine/cheviot_hal.h>
-#include <string.h>
-#include <sys/rpi_mailbox.h>
 
 
 /*
  */
 #define NMSG_BACKLOG 		1
 
-#define PERIPHERAL_BASE       0xFE000000                        /* Peripheral ARM phyiscal address */
-#define MBOX_BASE             (PERIPHERAL_BASE + 0x0000B880)    /* VideoCore Mailbox base */
-#define MBOX_BASE_PAGE        (PERIPHERAL_BASE + 0x0000B000)    /* Page-aligned base */
-#define MBOX_BASE_OFFSET      0x880                             /* Offset within page aligned base */
+#define TX_BUF_SZ       8192
 
 /*
  * Random driver Configuration settings
@@ -60,20 +55,9 @@ struct Config
 void init(int argc, char *argv[]);
 int process_args(int argc, char *argv[]);
 int mount_device(void);
-int get_fdt_device_info(void);
-int init_mailbox(void);
 
-void cmd_sendmsg(int portid, msgid_t msgid, struct fsreq *req);
-
-int post_mailbox(uint32_t tag, void *request, int req_sz, void *response, int response_sz);
-
-int cmd_mailbox_get_clock_state(int portid, int msgid, struct mailbox_req *req);
-int cmd_mailbox_set_clock_state(int portid, int msgid, struct mailbox_req *req);
-int cmd_mailbox_get_clock_rate(int portid, int msgid, struct mailbox_req *req);
-
-int cmd_mailbox_get_power_state(int portid, int msgid, struct mailbox_req *req);
-int cmd_mailbox_set_power_state(int portid, int msgid, struct mailbox_req *req);
-
+void cmd_read(msgid_t msgid, struct fsreq *req);
+void cmd_write(msgid_t msgid, struct fsreq *req);
 void sigterm_handler(int signo);
 
 #endif

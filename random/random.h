@@ -60,7 +60,7 @@ int mount_device(void);
 void cmd_isatty(msgid_t msgid, struct fsreq *req);
 void cmd_read(msgid_t msgid, struct fsreq *req);
 void cmd_write(msgid_t msgid, struct fsreq *req);
-
+void sigterm_handler(int signo);
 
 /*
  * Helper macros

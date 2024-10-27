@@ -32,9 +32,14 @@
 
 
 // Constants
-#define NMSG_BACKLOG 		                3   // 1 read, 1 write and 1 ioctl/termios/synchronous command
-//#define AUX_KEVENT_TIMEOUT_NS   500000000   // Timeout for kevent, 500ms
-#define AUX_KEVENT_TIMEOUT_NS   200000000   // Timeout for kevent, 500ms
+#define NMSG_BACKLOG 		                  3   // 1 read, 1 write and 1 ioctl/termios/synchronous command
+
+#define AUX_KEVENT_TIMEOUT_SEC            0
+#define AUX_KEVENT_TIMEOUT_NSEC   200000000    // 0.2seconds
+
+#define TX_BUF_SZ   8192
+#define RX_BUF_SZ   8192
+
 
 /*
  * Aux driver Configuration settings
@@ -71,10 +76,14 @@ struct Config
 /*
  * Common prototypes
  */
+
+// init.c
 void init(int argc, char *argv[]);
 int process_args(int argc, char *argv[]);
+int get_fdt_device_info(void);
 int mount_device(void);
 
+// main.c
 void cmd_abort(msgid_t msgid);
 void cmd_isatty(msgid_t msgid, struct fsreq *req);
 void cmd_read(msgid_t msgid, struct fsreq *req);
@@ -99,9 +108,8 @@ int rem_from_tx_queue(void);
 
 void sigterm_handler(int signo);
 
-// Board-Specific functions
+// aux_uart_hw.c
 int aux_uart_configure(int baud);
-int get_fdt_device_info(void);
 void aux_uart_set_kevent_mask(int kq);
 bool aux_uart_read_ready(void);
 bool aux_uart_write_ready(void);

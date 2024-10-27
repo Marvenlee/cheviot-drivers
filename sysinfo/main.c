@@ -47,10 +47,19 @@ void main(int argc, char *argv[])
  
  	init(argc, argv);
   
+  struct sigaction sact;
+  sact.sa_handler = &sigterm_handler;
+  sigemptyset(&sact.sa_mask);
+  sact.sa_flags = 0;
+  
+  if (sigaction(SIGTERM, &sact, NULL) != 0) {
+    exit(-1);
+  }
+
   EV_SET(&ev, portid, EVFILT_MSGPORT, EV_ADD | EV_ENABLE, 0, 0, 0); 
   kevent(kq, &ev, 1,  NULL, 0, NULL);
 
-  while (1) {
+  while (!shutdown) {
     errno = 0;
     nevents = kevent(kq, NULL, 0, &ev, 1, NULL);
 
@@ -88,8 +97,6 @@ void cmd_sendmsg(int portid, msgid_t msgid, struct fsreq *req)
   int subclass;
   char *cmd;
   
-  log_info("sysinfo: cmd_sendmsg");
-  
   
   subclass = req->args.sendmsg.subclass;
   req_sz = req->args.sendmsg.ssize;  
@@ -101,20 +108,20 @@ void cmd_sendmsg(int portid, msgid_t msgid, struct fsreq *req)
     return;
   }
 
-  readmsg(portid, msgid, req_buf, req_sz, sizeof *req);
+  readmsg(portid, msgid, req_buf, req_sz, 0);
   
   req_buf[req_sz] = '\0';  
   resp_buf[0] = '\0';
 
-  cmd = tokenize(req_buf);
+  cmd = strtok(req_buf, " ");
   
   if (!(cmd == NULL || cmd[0] == '\0')) {
     if (strncmp("#", cmd, 1) == 0) {
       // Comment
     } else if (strcmp("help", cmd) == 0) {
-      subcmd_help(cmd, req_sz, resp_sz);
+      subcmd_help(portid, msgid, req);
     } else if (strcmp("getinfo", cmd) == 0) {
-      subcmd_getinfo(cmd, req_sz, resp_sz);
+      subcmd_getinfo(portid, msgid, req);
     }
   } else {
     strlcpy(resp_buf, "ERROR\n", sizeof resp_buf);
@@ -130,11 +137,10 @@ void cmd_sendmsg(int portid, msgid_t msgid, struct fsreq *req)
 /*
  *
  */
-void subcmd_help(char *cmd, size_t req_sz, size_t resp_sz)
+void subcmd_help(int portid, msgid_t msgid, struct fsreq *req)
 {
-  strlcpy (resp_buf, "OK\n\n"
-                     "Usage:\n"
-                     "help    - command list\n"
+  strlcpy (resp_buf, "OK: help\n\n"
+                     "help    - get command list\n"
                      "getinfo - get system info\n", sizeof resp_buf);
 }
 
@@ -142,9 +148,9 @@ void subcmd_help(char *cmd, size_t req_sz, size_t resp_sz)
 /*
  *
  */
-void subcmd_getinfo(char *cmd, size_t req_sz, size_t resp_sz)
+void subcmd_getinfo(int portid, msgid_t msgid, struct fsreq *req)
 {
-  strlcpy (resp_buf, "OK\n\n"
+  strlcpy (resp_buf, "OK: getinfo\n\n"
                      "BOARD: raspberry pi\n"
                      "RAM: 2GB\n", sizeof resp_buf);
 }
@@ -153,46 +159,8 @@ void subcmd_getinfo(char *cmd, size_t req_sz, size_t resp_sz)
 /*
  *
  */
-char *tokenize(char *line)
+void sigterm_handler(int signo)
 {
-    static char *ch;
-    char separator;
-    char *start;
-    
-    if (line != NULL) {
-        ch = line;
-    }
-    
-    while (*ch != '\0') {
-        if (*ch != ' ') {
-           break;
-        }
-        ch++;        
-    }
-    
-    if (*ch == '\0') {
-        return NULL;
-    }        
-    
-    if (*ch == '\"') {
-        separator = '\"';
-        ch++;
-    } else {
-        separator = ' ';
-    }
-
-    start = ch;
-
-    while (*ch != '\0') {
-        if (*ch == separator) {
-            *ch = '\0';
-            ch++;
-            break;
-        }           
-        ch++;
-    }
-            
-    return start;    
+  shutdown = true;
 }
-
 

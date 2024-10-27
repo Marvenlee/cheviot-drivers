@@ -39,6 +39,9 @@
 #include "globals.h"
 
 
+void cmd_write_new(msgid_t msgid, struct fsreq *req);
+
+
 /* @brief   Main task of the serial driver for Pi's mini-uart
  *
  * Libtask coroutines are used for concurrency in the serial driver
@@ -72,13 +75,13 @@ void taskmain(int argc, char *argv[])
     exit(-1);
   }
   
-  taskcreate(reader_task, NULL, 8092);
-  taskcreate(writer_task, NULL, 8092);
-  taskcreate(uart_tx_task, NULL, 8092);
-  taskcreate(uart_rx_task, NULL, 8092);
+  taskcreate(reader_task, NULL, 8192);
+  taskcreate(writer_task, NULL, 8192);
+  taskcreate(uart_tx_task, NULL, 8192);
+  taskcreate(uart_rx_task, NULL, 8192);
 
-  timeout.tv_sec = 0;
-  timeout.tv_nsec = AUX_KEVENT_TIMEOUT_NS;
+  timeout.tv_sec = AUX_KEVENT_TIMEOUT_SEC;
+  timeout.tv_nsec = AUX_KEVENT_TIMEOUT_NSEC;
 
   aux_uart_set_kevent_mask(kq);
       
@@ -87,22 +90,27 @@ void taskmain(int argc, char *argv[])
 
   aux_uart_unmask_interrupt();
 
-  while (1) {
+  while (!shutdown) {
     errno = 0;
     nevents = kevent(kq, NULL, 0, &ev, 1, &timeout);
 
-    if (nevents == -ETIMEDOUT || (nevents == 1 && ev.filter == EVFILT_THREAD_EVENT)) {
-      /* Check for interrupts and awaken Tx and/or Rx tasks
-       * Yield until no other task is running. */   
+#if 1
+//    if (nevents < 0) {
+      // timeout, wakeup rx and tx tasks, see if they can read or write the fifos
+      taskwakeupall(&rx_rendez);
+      taskwakeupall(&tx_rendez);
+//    }
+#endif
+
+    if ((nevents == 1 && ev.filter == EVFILT_THREAD_EVENT)) {
+      /* Check for interrupts and awaken Tx and/or Rx tasks */
       aux_uart_handle_interrupt(ev.fflags);
-      aux_uart_unmask_interrupt();
     }
     
     if (nevents == 1 && ev.ident == portid && ev.filter == EVFILT_MSGPORT) {
       while ((sc = getmsg(portid, &msgid, &req, sizeof req)) == sizeof req) {
         switch (req.cmd) {
           case CMD_ABORT:
-            log_error("CMD_ABORT");
             cmd_abort(msgid);
             break;
 
@@ -133,18 +141,18 @@ void taskmain(int argc, char *argv[])
         }
       }      
       
-      if (sc != 0) {
+      if (sc < 0) {
         log_error("aux: getmsg sc=%d %s", sc, strerror(errno));
         exit(EXIT_FAILURE);
       }
     }
-    
-    if (shutdown == true) {
-      log_info("shutdown");
-      break;
+        
+    while (taskyield() != 0);
+
+    if ((nevents == 1 && ev.filter == EVFILT_THREAD_EVENT)) {
+      aux_uart_unmask_interrupt();
     }
     
-    while (taskyield() != 0);
   }
 
   // TODO: Flush and data to output queue, drain input queue and RX FIFO
@@ -167,7 +175,8 @@ void cmd_isatty (msgid_t msgid, struct fsreq *fsreq)
  */
 void cmd_tcgetattr(msgid_t msgid, struct fsreq *fsreq)
 {	
-  replymsg(portid, msgid, 0, &termios, sizeof termios);
+  writemsg(portid, msgid, &termios, sizeof termios, 0);
+  replymsg(portid, msgid, 0, NULL, 0);
 }
 
 
@@ -178,7 +187,7 @@ void cmd_tcsetattr(msgid_t msgid, struct fsreq *fsreq)
 {
   log_info("**** tcsetattr ****");
  
-  readmsg(portid, msgid, &termios, sizeof termios, sizeof *fsreq);
+  readmsg(portid, msgid, &termios, sizeof termios, 0);
 
   // TODO: Flush any buffers, change stream mode to canonical etc
 
@@ -199,7 +208,7 @@ void cmd_abort(msgid_t msgid)
     read_msgid = -1;
 
     taskwakeup(&read_cmd_rendez);
-    taskwakeup(&rx_data_rendez);    
+    taskwakeupall(&rx_rendez);    
     replymsg(portid, msgid, -EINTR, NULL, 0);
     
   } else if (write_pending == true && write_msgid == msgid) {
@@ -207,7 +216,7 @@ void cmd_abort(msgid_t msgid)
     write_msgid = -1;
     
     taskwakeup(&write_cmd_rendez);
-    taskwakeup(&tx_rendez);
+    taskwakeupall(&tx_rendez);
   	replymsg(portid, msgid, -EINTR, NULL, 0);  
 
   } else {
@@ -227,7 +236,7 @@ void cmd_read(msgid_t msgid, struct fsreq *req)
   read_pending = true;
   read_msgid = msgid;
   memcpy (&read_fsreq, req, sizeof read_fsreq);
-  taskwakeup (&read_cmd_rendez);
+  taskwakeup(&read_cmd_rendez);
 }
 
 
@@ -243,29 +252,26 @@ void cmd_write(msgid_t msgid, struct fsreq *req)
 }
 
 
-/*
+/* @brief   Handle a read message request from cmd_read.
  *
+ * This is a "director" coroutine/task in the "secretaties and directors" model of 
+ * cooperating sequential processes (CSP).
  */
 void reader_task (void *arg)
 {
   ssize_t nbytes_read;
   size_t line_length;
   size_t remaining;
-  uint8_t *buf;
-  size_t sz;
+  size_t left;
+  size_t nbytes_to_copy;
 
-  while (1) {
+  while (!shutdown) {
     while (read_pending == false) {
       tasksleep (&read_cmd_rendez);
     }
-    
-    sz = 0;
-    remaining = 0;
-    buf = NULL;
-    nbytes_read = 0;
-    
+        
     while (rx_sz == 0 && read_pending == true) {
-      tasksleep(&rx_data_rendez);
+      tasksleep(&rx_rendez);
     }
 
     if (read_pending == false) {
@@ -274,7 +280,7 @@ void reader_task (void *arg)
 
     if (termios.c_lflag & ICANON) {
       while(line_cnt == 0 && read_pending == true) {
-        tasksleep(&rx_data_rendez);
+        tasksleep(&rx_rendez);
       }
     
       if (read_pending == false) {
@@ -287,31 +293,24 @@ void reader_task (void *arg)
     } else {
       remaining = (rx_sz < read_fsreq.args.read.sz) ? rx_sz : read_fsreq.args.read.sz;
     }
-         
-    
-    if (rx_head + remaining > sizeof rx_buf) {
-      sz = sizeof rx_buf - rx_head;
-      buf = &rx_buf[rx_head]; 
+
+    nbytes_read = 0;
+
+    while(remaining > 0)
+    {  
+      left = RX_BUF_SZ - rx_head;
+
+      nbytes_to_copy = (remaining < left) ? remaining : left;
       
-      writemsg(portid, read_msgid, buf, sz, 0);
+      writemsg(portid, read_msgid, &rx_buf[rx_head], nbytes_to_copy, nbytes_read);
 
-      nbytes_read = sz;
-    
-      sz = remaining - sz;
-      buf = &rx_buf[0];
-    } else {
-	    nbytes_read = 0;
-      sz = remaining;
-      buf = &rx_buf[rx_head];
+      nbytes_read += nbytes_to_copy;          
+      tx_free_sz += nbytes_to_copy;
+      rx_sz -= nbytes_to_copy;
+      remaining -= nbytes_to_copy;
+      
+      rx_head = (rx_head + nbytes_to_copy) % RX_BUF_SZ;
     }
-        
-    writemsg(portid, read_msgid, buf, sz, nbytes_read);
-
-    nbytes_read += sz;
-
-    rx_head = (rx_head + nbytes_read) % sizeof rx_buf;
-    rx_free_sz += nbytes_read;
-    rx_sz -= nbytes_read;
     
     if (termios.c_lflag & ICANON) {
       if (nbytes_read == line_length) {
@@ -329,73 +328,51 @@ void reader_task (void *arg)
 }
 
 
-/*
+/* @brief   Handle a write message request from cmd_write.
  *
+ * This is a "director" coroutine/task in the "secretaties and directors" model of 
+ * cooperating sequential processes (CSP).
  */
 void writer_task (void *arg)
 {
   ssize_t nbytes_written;
   size_t remaining;
-  uint8_t *buf = NULL;
-  size_t sz;
+  size_t left;
+  size_t nbytes_to_copy;
   
   while (1) {
     while (write_pending == false) {
       tasksleep (&write_cmd_rendez);
     }
-    
-    sz = 0;
-    remaining = 0;
-    buf = NULL;
-    nbytes_written = 0;
-    
-    if (tx_free_sz < 0) {
-      log_error("tx_free_sz = %d, < 0", tx_free_sz);
-      exit(7);
-    }
-    
+
     while (tx_free_sz == 0 && write_pending == true) {
-      tasksleep(&tx_free_rendez);
+      tasksleep(&tx_rendez);
     }
 
     if (write_pending == false) {
+      // Command aborted
       continue;
     }
 
+    nbytes_written = 0;    
     remaining = (tx_free_sz < write_fsreq.args.write.sz) ? tx_free_sz : write_fsreq.args.write.sz;
-    nbytes_written = 0;
-        
-    if (tx_free_head + remaining > sizeof tx_buf) {
-      sz = sizeof tx_buf - tx_free_head;
-      buf = &tx_buf[tx_free_head]; 
+  
+    while(remaining > 0)
+    {  
+      left = TX_BUF_SZ - tx_free_head;
 
-      readmsg(portid, write_msgid, buf, sz, sizeof (struct fsreq));
+      nbytes_to_copy = (remaining < left) ? remaining : left;
+      
+      readmsg(portid, write_msgid, &tx_buf[tx_free_head], nbytes_to_copy, nbytes_written);
 
-      nbytes_written += sz;      
-      sz = remaining - sz;
-      buf = &tx_buf[0];
-    } else {
-      sz = remaining;
-      buf = &tx_buf[tx_free_head];
-    }
-
-    if (sz > sizeof tx_buf) {
-      log_error("write sz > tx_buf");
-      exit (8);
+      nbytes_written += nbytes_to_copy;          
+      tx_free_sz -= nbytes_to_copy;
+      tx_sz += nbytes_to_copy;
+      remaining -= nbytes_to_copy;
+      
+      tx_free_head = (tx_free_head + nbytes_to_copy) % TX_BUF_SZ;
     }
     
-    if (sz == 0) {
-      log_error("write sz == 0");
-      exit (8);
-    }
-    
-    readmsg(portid, write_msgid, buf, sz, sizeof (struct fsreq) + nbytes_written);
-    nbytes_written += sz;
-
-    tx_free_head = (tx_free_head + nbytes_written) % sizeof tx_buf;
-    tx_free_sz -= nbytes_written;
-    tx_sz += nbytes_written;
-
     replymsg(portid, write_msgid, nbytes_written, NULL, 0);
     
     write_msgid = -1;
@@ -406,50 +383,51 @@ void writer_task (void *arg)
 }
 
 
-/*
- * Effectively a deferred procedure call for interrupts running on task state
+/* @brief   Handle loading of characters into the Aux UART's Tx FIFO
+ *
+ * This can be thought of as an interrupt handler.  When notified of a change in the
+ * Aux UART's FIFO, this task is awakened.
+ *
+ * This is a "subsecretary" coroutine/task in the "secretaties and directors" model of 
+ * cooperating sequential processes (CSP).
  */
 void uart_tx_task(void *arg)
 {
-  while (1) {
+  while (!shutdown) {
     while (tx_sz == 0 || aux_uart_write_ready() == false) {
       tasksleep(&tx_rendez);
     }
   
-    if (tx_sz + tx_free_sz > sizeof tx_buf) {
-      log_error("exit failure tx_sz");
-      exit(EXIT_FAILURE);
-    }
-    
-    while (tx_sz > 0 /* && uart_tx_ready() == true */) {
-        
-        if (tx_head >= sizeof tx_buf) {
-          exit(-1);
-        }
+    while (tx_sz > 0) {
+      aux_uart_write_byte(tx_buf[tx_head]);
 
-        aux_uart_write_byte(tx_buf[tx_head]);
-        tx_head = (tx_head + 1) % sizeof tx_buf;
-        tx_sz--;
-        tx_free_sz++;
+      tx_head = (tx_head + 1) % TX_BUF_SZ;
+      tx_sz--;
+      tx_free_sz++;
     }
 
     if (tx_free_sz > 0) {
+      taskwakeupall(&tx_rendez);
       // TODO: knotei() indicate we have free space in output buffer to write to
-      taskwakeupall(&tx_free_rendez);
     }   
   }
 }
 
 
-/*
- * Effectively a deferred procedure call for interrupts running on task state
+/* @brief   Handle the reading of characters from the Aux UART's Rx FIFO
+ *
+ * This can be thought of as an interrupt handler.  When notified of a change in the
+ * Aux UART's Rx FIFO, this task is awakened.
+ *
+ * This is a "subsecretary" coroutine/task in the "secretaties and directors" model of 
+ * cooperating sequential processes (CSP).
  */
 void uart_rx_task(void *arg)
 {
   uint32_t flags;
   uint8_t ch;
   
-  while(1)
+  while(!shutdown)
   {
     while (rx_free_sz == 0 || aux_uart_read_ready() == false) {
       tasksleep (&rx_rendez);
@@ -462,18 +440,18 @@ void uart_rx_task(void *arg)
 
     if (termios.c_lflag & ICANON) {
       if (line_cnt > 0) {
-        taskwakeupall(&rx_data_rendez);
+        taskwakeupall(&rx_rendez);
       }
     }
     else if (rx_sz > 0) {
-        taskwakeupall(&rx_data_rendez);
-        // TODO: knotei() indicate we have data to read
+      taskwakeupall(&rx_rendez);
+      // TODO: knotei() indicate we have data to read
     }
   }
 }
 
 
-/*
+/* @brief   Line buffer processing when in canonical mode and ctrl character handling
  *
  */
 void line_discipline(uint8_t ch)
@@ -568,10 +546,10 @@ int backspace(void)
 {
   uint8_t last_char;
   
-  last_char = rx_buf[(rx_head + rx_sz - 1) % sizeof rx_buf];
+  last_char = rx_buf[(rx_head + rx_sz - 1) % RX_BUF_SZ];
   if (last_char != termios.c_cc[VEOL] && last_char != termios.c_cc[VEOL2]) {
     rem_from_rx_queue();
-    echo('\b', 0);    // FIXME : Should we use [VEOL] ????
+    echo('\b', 0);    // FIXME : Should we use termios.c_cc[VERASE] ???
     echo(' ', 0);
     echo('\b', 0);
     return 1;
@@ -581,7 +559,7 @@ int backspace(void)
 }
 
 
-/*
+/* @brief   Delete an entire line
  *
  */
 void delete_line(void)
@@ -596,13 +574,12 @@ void delete_line(void)
 int get_line_length(void)
 {  
   for (int t=0; t < rx_sz; t++) {    
-    if (rx_buf[(rx_head + t) % sizeof rx_buf] == termios.c_cc[VEOL] ||
-        rx_buf[(rx_head + t) % sizeof rx_buf] == termios.c_cc[VEOL2]) {
+    if (rx_buf[(rx_head + t) % RX_BUF_SZ] == termios.c_cc[VEOL] ||
+        rx_buf[(rx_head + t) % RX_BUF_SZ] == termios.c_cc[VEOL2]) {
       return t+1;
     }
   }
   
-  // Shouldn't get here
   return rx_sz;
 }
 
@@ -642,11 +619,11 @@ int add_to_rx_queue(uint8_t ch)
   if (rx_free_sz > 0) {
     rx_buf[rx_free_head] = ch;
     rx_sz++;
-    rx_free_head = (rx_free_head + 1) % sizeof rx_buf;
+    rx_free_head = (rx_free_head + 1) % RX_BUF_SZ;
     rx_free_sz--;
   }
 
-  taskwakeupall(&rx_data_rendez);
+  taskwakeupall(&rx_rendez);
   
   return 0;
 }
@@ -659,7 +636,12 @@ int rem_from_rx_queue(void)
 {
   if (rx_sz > 0) {
     rx_sz --;
-    rx_free_head = (rx_free_head - 1) % sizeof rx_buf;
+    rx_free_head -= 1;
+    
+    if (rx_free_head >= RX_BUF_SZ) {
+      rx_free_head = RX_BUF_SZ - 1;
+    }
+    
     rx_free_sz++;    
   }
   
@@ -677,7 +659,7 @@ int add_to_tx_queue(uint8_t ch)
   }
 
   tx_buf[tx_free_head] = ch;
-  tx_free_head = (tx_free_head + 1) % sizeof tx_buf;
+  tx_free_head = (tx_free_head + 1) % TX_BUF_SZ;
   tx_free_sz--;
   tx_sz++;
 
@@ -690,23 +672,9 @@ int add_to_tx_queue(uint8_t ch)
 /*
  *
  */
-int rem_from_tx_queue(void)
-{
-  if (tx_sz > 0) {
-    tx_sz --;
-    tx_free_head = (tx_free_head - 1) % sizeof tx_buf;
-    tx_free_sz++;    
-  }
-  
-  return 0;
-}
-
-
-/*
- *
- */
 void sigterm_handler(int signo)
 {
   shutdown = true;
 }
+
 

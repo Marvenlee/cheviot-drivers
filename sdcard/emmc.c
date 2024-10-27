@@ -37,7 +37,7 @@
 
 //#define NDEBUG
 //#define EMMC_DEBUG
-#define LOG_LEVEL_WARN
+#define LOG_LEVEL_INFO
 
 #include <stdint.h>
 #include <stdio.h>
@@ -67,7 +67,7 @@ void sd_issue_command_int(struct emmc_block_dev *dev, uint32_t cmd_reg,
   // This is as per HCSS 3.7.1.1/3.7.2.2
   // Check Command Inhibit
   while (mmio_read(emmc_base + EMMC_STATUS) & 0x1) {
-    delay_microsecs(1);  // FIXME: busy wait
+    delay_microsecs(10);  // FIXME: busy wait
   }
   // Is the command with busy?
   if ((cmd_reg & SD_CMD_RSPNS_TYPE_MASK) == SD_CMD_RSPNS_TYPE_48B) {
@@ -79,7 +79,7 @@ void sd_issue_command_int(struct emmc_block_dev *dev, uint32_t cmd_reg,
 
       // Wait for the data line to be free
       while (mmio_read(emmc_base + EMMC_STATUS) & 0x2) {
-        delay_microsecs(1); // FIXME: busy wait
+        delay_microsecs(10); // FIXME: busy wait
       }
     }
   }
@@ -130,7 +130,7 @@ void sd_issue_command_int(struct emmc_block_dev *dev, uint32_t cmd_reg,
 
   // Test for errors
   if ((irpts & 0xffff0001) != 0x1) {
-    log_debug("error occured whilst waiting for command complete interrupt");
+    log_warn("error occured whilst waiting for command complete interrupt");
     dev->last_error = irpts & 0xffff0000;
     dev->last_interrupt = irpts;
     return;
@@ -171,6 +171,7 @@ void sd_issue_command_int(struct emmc_block_dev *dev, uint32_t cmd_reg,
       
       TIMEOUT_WAIT(mmio_read(emmc_base + EMMC_INTERRUPT) & (wr_irpt | 0x8000),
                    timeout);
+
       irpts = mmio_read(emmc_base + EMMC_INTERRUPT);
       mmio_write(emmc_base + EMMC_INTERRUPT, 0xffff0000 | wr_irpt);
 
@@ -458,7 +459,7 @@ int sd_ensure_data_mode(struct emmc_block_dev *edev) {
 
   sd_issue_command(edev, SEND_STATUS, edev->card_rca << 16, 500000);
   if (FAIL(edev)) {
-    log_info("ensure_data_mode() error sending CMD13");
+    log_error("ensure_data_mode() error sending CMD13");
     edev->card_rca = 0;
     return -1;
   }
@@ -470,7 +471,7 @@ int sd_ensure_data_mode(struct emmc_block_dev *edev) {
     // Currently in the stand-by state - select it
     sd_issue_command(edev, SELECT_CARD, edev->card_rca << 16, 500000);
     if (FAIL(edev)) {
-      log_info("ensure_data_mode() no response from CMD17");
+      log_error("ensure_data_mode() no response from CMD17");
       edev->card_rca = 0;
       return -1;
     }
@@ -478,7 +479,7 @@ int sd_ensure_data_mode(struct emmc_block_dev *edev) {
     // In the data transfer state - cancel the transmission
     sd_issue_command(edev, STOP_TRANSMISSION, 0, 500000);
     if (FAIL(edev)) {
-      log_info("ensure_data_mode() no response from CMD12");
+      log_error("ensure_data_mode() no response from CMD12");
       edev->card_rca = 0;
       return -1;
     }
@@ -496,7 +497,7 @@ int sd_ensure_data_mode(struct emmc_block_dev *edev) {
   if (cur_state != 4) {
     sd_issue_command(edev, SEND_STATUS, edev->card_rca << 16, 500000);
     if (FAIL(edev)) {
-      log_info("ensure_data_mode() no response from CMD13");
+      log_error("ensure_data_mode() no response from CMD13");
       edev->card_rca = 0;
       return -1;
     }
@@ -504,7 +505,7 @@ int sd_ensure_data_mode(struct emmc_block_dev *edev) {
     cur_state = (status >> 9) & 0xf;
 
     if (cur_state != 4) {
-      log_info("unable to initialise SD card to data mode (state %i)", cur_state);
+      log_error("unable to initialise SD card to data mode (state %i)", cur_state);
       edev->card_rca = 0;
       return -1;
     }
@@ -532,7 +533,7 @@ int sd_do_data_command(struct emmc_block_dev *edev, int is_write,
 
   // This is as per HCSS 3.7.2.1
   if (buf_size < edev->block_size) {
-    log_info("do_data_command() called with buffer size (%i) less than "
+    log_error("do_data_command() called with buffer size (%i) less than "
          "block size (%i)",
          buf_size, edev->block_size);
     return -1;
@@ -540,7 +541,7 @@ int sd_do_data_command(struct emmc_block_dev *edev, int is_write,
 
   edev->blocks_to_transfer = buf_size / edev->block_size;
   if (buf_size % edev->block_size) {
-    log_info("do_data_command() called with buffer size (%i) not an "
+    log_error("do_data_command() called with buffer size (%i) not an "
          "exact multiple of block size (%i)",
          buf_size, edev->block_size);
     return -1;
@@ -594,7 +595,7 @@ int sd_do_data_command(struct emmc_block_dev *edev, int is_write,
       if (retry_count < max_retries)
         log_info("Retrying...");
       else
-        log_info("Giving up.");
+        log_error("Giving up.");
     }
   }
   if (retry_count == max_retries) {

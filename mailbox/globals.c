@@ -45,5 +45,6 @@ void *mailbox_base;
 uint32_t *mailbuffer;
 uint32_t *mailbuffer_phys;
 
+bool shutdown;
 
 

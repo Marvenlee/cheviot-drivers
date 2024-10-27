@@ -44,5 +44,7 @@ extern uint32_t random_buf[256];
 
 extern struct Config config;
 
+extern bool shutdown;
+
 #endif
 

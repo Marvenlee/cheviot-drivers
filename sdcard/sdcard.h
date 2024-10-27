@@ -32,7 +32,7 @@
 /*
  */
  
-#define SDCARD_TASK_PRIORITY  22        // Use SCHED_RR
+#define SDCARD_TASK_PRIORITY  28        // Use SCHED_RR
 #define NMSG_BACKLOG 				  1
 #define BUF_SZ    			      4096      // Buffer size used to read and write
 
@@ -119,7 +119,20 @@ int create_partition_mounts(void);
 void sdcard_read(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
 void sdcard_write(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
 
-// timer.c
-int delay_microsecs(int usec);
+void sdcard_sendmsg(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
+void cmd_help(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
+void sigterm_handler(int signo);
+
+// profiling.c
+void cmd_profiling(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
+void cmd_profiling_stats(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
+void cmd_profiling_enable(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
+void cmd_profiling_disable(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
+void cmd_profiling_reset(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
+
+// debug.c
+void cmd_debug(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
+void cmd_debug_registers(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
+
 
 #endif

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define LOG_LEVEL_WARN
+#define LOG_LEVEL_INFO
 
 #include <dirent.h>
 #include <errno.h>
@@ -34,23 +34,9 @@
 #include <sys/panic.h>
 #include "aux_uart.h"
 #include "globals.h"
-#include <libfdt.h>
 #include "aux_uart.h"
 #include "aux_uart_hw.h"
-#include <fdthelper.h>
-#include <fdt.h>
 
-/*
- * Memory mapped IO locations
- */
-struct bcm2835_aux_registers *aux_regs;
-int isrid;
-bool interrupt_masked = false;
-struct fdthelper helper;
-void *aux_vpu_base;
-void *aux_phys_base;
-size_t aux_reg_size;
-int aux_irq;
 
 
 /* @brief   Configure the Aux UART
@@ -64,13 +50,14 @@ int aux_irq;
  *
  * TODO: kernel logging should be disabled whilst reconfiguring AUX UART to avoid
  * any deadlocks when the Tx is disabled.
- */ 
+ *
+ * TODO: See elinux BCM2835 datasheet errata page
+ *
+ * TODO: We could enable the real TX int IF we have more data in the driver's tx_buf            
+ */
+
 int aux_uart_configure(int baud)
 {
-  if (get_fdt_device_info() != 0) {
-    return -EIO;
-  }
-
   aux_regs = map_phys_mem(aux_phys_base, aux_reg_size,
                           PROT_READ | PROT_WRITE | CACHE_UNCACHEABLE, 
                           AUX_REGS_START_VADDR);
@@ -84,78 +71,27 @@ int aux_uart_configure(int baud)
   if (isrid < 0) {
     return -EINVAL;
   }
-  
+
   interrupt_masked = true;
-  
-  hal_mmio_write(&aux_regs->mu_cntl_reg, 0);                // Disable Tx and Rx
-  hal_mmio_write(&aux_regs->mu_lcr_reg, LCR_8_BIT | 0x02);  // FIXME: Unsure of 0x02
+
+  hal_mmio_write(&aux_regs->mu_cntl_reg, 0);                  // Disable Tx and Rx
+  hal_mmio_write(&aux_regs->mu_lcr_reg, LCR_8_BIT);
   hal_mmio_write(&aux_regs->mu_mcr_reg, 0);
   hal_mmio_write(&aux_regs->mu_ier_reg, 0);
-  hal_mmio_write(&aux_regs->mu_iir_reg, IIR_RX | IIR_TX | 0xC0);  // 0xC0 bits should be read-only
+  hal_mmio_write(&aux_regs->mu_iir_reg, IIR_RX | IIR_TX);
   hal_mmio_write(&aux_regs->mu_baud_reg, AUX_MU_BAUD(baud)); 
-
   hal_mmio_write(&aux_regs->mu_cntl_reg, CNTL_TX_EN | CNTL_RX_EN);
-  
-  // Enable the Aux UART interrupt but do not unmask it just yet.
-  hal_mmio_write(&aux_regs->mu_ier_reg, IER_TX_INT_EN | IER_RX_INT_EN);
+
+  // Enable the Aux UART RX interrupt but do not unmask it just yet.            
+  hal_mmio_write(&aux_regs->mu_ier_reg, IER_RX_INT_EN);
 
   return 0;
 }
 
 
-/* @brief   Read the device tree file and gather aux uart configuration
- *
- * Need some way of knowing which dtb to use
- * Specify on command line?  or add a kernel sys_get_dtb_name()
- * Passed in bootinfo.
- */
-int get_fdt_device_info(void)
-{
-  int offset;
-  int len;
-  
-  if (load_fdt("/lib/firmware/dt/rpi4.dtb", &helper) != 0) {
-    return -EIO;
-  }
-
-  // check if the file is a valid fdt
-  if (fdt_check_header(helper.fdt) != 0) {
-    unload_fdt(&helper);
-    return -EIO;
-  }
-     
-  if ((offset = fdt_path_offset(helper.fdt, "/soc/aux")) < 0) {
-    unload_fdt(&helper);
-    return -EIO;
-  }
-  
-  if (fdthelper_check_compat(helper.fdt, offset, "brcm,bcm2835-aux") != 0) {
-    unload_fdt(&helper);
-    return -EIO;
-  }
-
-  if (fdthelper_get_reg(helper.fdt, offset, &aux_vpu_base, &aux_reg_size) != 0) {
-    unload_fdt(&helper);
-    return -EIO;
-  } 
-
-  if (fdthelper_translate_address(helper.fdt, aux_vpu_base, &aux_phys_base) != 0) {
-    unload_fdt(&helper);
-    return -EIO;        
-  }
-
-  if (fdthelper_get_irq(helper.fdt, offset, &aux_irq) != 0) {
-    unload_fdt(&helper);
-    return -EIO;
-  }   
-
-  unload_fdt(&helper);
-  return 0;  
-}
-
-
 /*
- *
+ * TODO: Can we replace cthread_event_kevent_mask with the mask being set in EV_SET for thread events?
+ * Can only set the caller's thread events.
  */
 void aux_uart_set_kevent_mask(int kq)
 {
@@ -165,37 +101,29 @@ void aux_uart_set_kevent_mask(int kq)
 
 /* @brief   Aux UART Bottom-Half interrupt handling
  *
+ * TODO: Check the IIR register values in the BCM2835 datasheet errata on elinux site.
+ * Currently we are polling the output register instead of yielding to other tasks.
+ * This is why we get away with not using the transmit interrupt.
  */
 void aux_uart_handle_interrupt(uint32_t events)
 {
   uint32_t iir;
+  uint32_t irq_reg;
 
   if (events & (1<<EVENT_AUX_INT)) {
     interrupt_masked = true;
-    
-    log_info("aux handle interrupt");
-    
-    iir = hal_mmio_read(&aux_regs->mu_iir_reg);      
 
-#if 1
-    if (iir & IIR_RX) {
-      log_info("aux IIR_RX wakeup");
-      taskwakeupall(&rx_rendez);
-    }
+    irq_reg = hal_mmio_read(&aux_regs->irq);        
 
-    if (iir & IIR_TX) {
-      log_info("aux IIR_TX wakeup");
-      taskwakeupall(&tx_rendez);
+    if(irq_reg & (1<<0)) {
+
+      iir = hal_mmio_read(&aux_regs->mu_iir_reg);      
+
+      if ((iir & (0x01)) == 0) {
+        taskwakeupall(&rx_rendez);
+        taskwakeupall(&tx_rendez);
+      }
     }
-#else
-    // TODO: Reduce number of rendez (tx_rendez and rx_rendez aren't needed).
-    TaskSleep(&tx_rendez);
-    TaskSleep(&rx_rendez);
-    TaskSleep(&tx_free_rendez);
-    TaskSleep(&rx_data_rendez);
-    TaskSleep(&write_cmd_rendez);
-    TaskSleep(&read_cmd_rendez);
-#endif    
   }
 }
 
@@ -205,9 +133,8 @@ void aux_uart_handle_interrupt(uint32_t events)
  */
 void aux_uart_unmask_interrupt(void)
 {
-  if (interrupt_masked == true) {
-    log_info("aux unmask interrupt");
-    unmaskinterrupt(AUX_UART_IRQ);
+  if (interrupt_masked == true) {    
+    unmaskinterrupt(aux_irq);
     interrupt_masked = false;
   }
 }

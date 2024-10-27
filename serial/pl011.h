@@ -75,6 +75,8 @@ void line_discipline(uint8_t ch);
 int get_line_length(void);
 void echo(uint8_t ch);
 
+void sigterm_handler(int signo);
+
 void Delay(uint32_t cycles);
 
 void isb(void);

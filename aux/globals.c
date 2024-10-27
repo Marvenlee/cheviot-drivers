@@ -28,9 +28,12 @@
 #include <sys/syscalls.h>
 #include <unistd.h>
 #include <sys/fsreq.h>
-#include <poll.h>
 #include <sys/termios.h>
+#include <libfdt.h>
+#include <fdthelper.h>
+#include <fdt.h>
 #include "aux_uart.h"
+#include "aux_uart_hw.h"
 
 
 int portid;
@@ -47,14 +50,14 @@ uint32_t tx_sz;
 uint32_t tx_free_head;
 uint32_t tx_free_sz;
 
-uint8_t tx_buf[4096];
+uint8_t tx_buf[TX_BUF_SZ];
 
 uint32_t rx_head;
 size_t rx_sz;
 uint32_t rx_free_head;
 size_t rx_free_sz;
 
-uint8_t rx_buf[4096];
+uint8_t rx_buf[RX_BUF_SZ];
 
 uint32_t line_cnt;
 uint32_t line_end;
@@ -68,15 +71,22 @@ msgid_t write_msgid;
 Rendez tx_rendez;
 Rendez rx_rendez;
 
-Rendez tx_free_rendez;
-Rendez rx_data_rendez;
-
-Rendez write_cmd_rendez;
 Rendez read_cmd_rendez;
+Rendez write_cmd_rendez;
 
 struct fsreq read_fsreq;
+
 struct fsreq write_fsreq;
+
 struct termios termios;
 struct Config config;
 
+struct bcm2835_aux_registers *aux_regs;
+int isrid;
+bool interrupt_masked = false;
+struct fdthelper helper;
+void *aux_vpu_base;
+void *aux_phys_base;
+size_t aux_reg_size;
+int aux_irq;
 

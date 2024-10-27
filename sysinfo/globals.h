@@ -42,6 +42,7 @@ extern struct Config config;
 extern char req_buf[ARG_MAX];
 extern char resp_buf[ARG_MAX];
 
+extern bool shutdown;
 
 #endif
 

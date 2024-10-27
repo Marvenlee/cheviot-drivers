@@ -35,6 +35,8 @@ int kq;
 
 struct Config config;
 
+bool shutdown;
+
 
 
 

@@ -62,30 +62,15 @@
  */
 int sd_read(struct block_device *dev, uint8_t *buf, size_t buf_size, uint32_t block_no)
 {
-#ifdef ENABLE_READ_BENCHMARK_LOGGING
-	struct timespec startts, endts, diffts;
-#endif
-	
   // Check the status of the card
   struct emmc_block_dev *edev = (struct emmc_block_dev *)dev;
-  if (sd_ensure_data_mode(edev) != 0)
-    return -1;
-
-#ifdef ENABLE_READ_BENCHMARK_LOGGING
-  clock_gettime(CLOCK_MONOTONIC_RAW, &startts);  
-#endif
-
-  if (sd_do_data_command(edev, 0, buf, buf_size, block_no) < 0) {
-    log_error("failed to read block %d ***", (uint32_t)block_no);
+  if (sd_ensure_data_mode(edev) != 0) {
     return -1;
   }
-
-#ifdef ENABLE_READ_BENCHMARK_LOGGING
-  clock_gettime(CLOCK_MONOTONIC_RAW, &endts);  
-  diff_timespec(&diffts, &endts, &startts);  	
-  log_info("read from block %u, sz:%u", block_no, buf_size);
-  log_info("time = %u.%06u", (uint32_t)diffts.tv_sec, (uint32_t)diffts.tv_nsec/1000);
-#endif
+  
+  if (sd_do_data_command(edev, 0, buf, buf_size, block_no) < 0) {
+    return -1;
+  }
   
   return buf_size;
 }
@@ -98,14 +83,12 @@ int sd_write(struct block_device *dev, uint8_t *buf, size_t buf_size, uint32_t b
 {
   // Check the status of the card
   struct emmc_block_dev *edev = (struct emmc_block_dev *)dev;
-  if (sd_ensure_data_mode(edev) != 0)
+  if (sd_ensure_data_mode(edev) != 0) {
     return -1;
-
-  log_info("sd_write() block %d, buf:%08x, sz:%d", (uint32_t)block_no, (uint32_t)buf, buf_size);
+  }
 
   if (sd_do_data_command(edev, 1, buf, buf_size, block_no) < 0)
   {
-  	log_error("failed to write block %d ***", (uint32_t)block_no);
     return -1;
 	}
 	

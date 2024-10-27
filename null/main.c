@@ -42,13 +42,22 @@ void main(int argc, char *argv[])
   struct fsreq req;
   int nevents;
   struct kevent ev;
+  struct sigaction sact;
  
  	init(argc, argv);
+
+  sact.sa_handler = &sigterm_handler;
+  sigemptyset(&sact.sa_mask);
+  sact.sa_flags = 0;
+  
+  if (sigaction(SIGTERM, &sact, NULL) != 0) {
+    exit(-1);
+  }
   
   EV_SET(&ev, portid, EVFILT_MSGPORT, EV_ADD | EV_ENABLE, 0, 0, 0); 
   kevent(kq, &ev, 1,  NULL, 0, NULL);
 
-  while (1) {
+  while (!shutdown) {
     errno = 0;
     nevents = kevent(kq, NULL, 0, &ev, 1, NULL);
 
@@ -81,5 +90,14 @@ void main(int argc, char *argv[])
   }
   
   exit(0);
+}
+
+
+/*
+ *
+ */
+void sigterm_handler(int signo)
+{
+  shutdown = true;
 }
 

@@ -55,10 +55,10 @@ int process_args(int argc, char *argv[]);
 int mount_device(void);
 
 void cmd_sendmsg(int portid, msgid_t msgid, struct fsreq *req);
-void subcmd_help(char *cmd, size_t req_sz, size_t resp_sz);
-void subcmd_getinfo(char *cmd, size_t req_sz, size_t resp_sz);
+void subcmd_help(int portid, msgid_t msgid, struct fsreq *req);
+void subcmd_getinfo(int portid, msgid_t msgid, struct fsreq *req);
 char *tokenize(char *line);
-
+void sigterm_handler(int signo);
 
 #endif
 

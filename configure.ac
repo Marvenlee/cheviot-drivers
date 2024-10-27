@@ -19,6 +19,7 @@ AC_CONFIG_FILES([
   sysinfo/Makefile
   gpio/Makefile
   mailbox/Makefile
+  echo/Makefile
   ])
   
 AC_OUTPUT

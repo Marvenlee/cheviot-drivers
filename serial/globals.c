@@ -85,4 +85,5 @@ volatile struct bcm2711_gpio_registers *gpio;
 
 struct Config config;
 
+bool shutdown;
 
