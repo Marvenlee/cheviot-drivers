@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <sys/lists.h>
-#include <sys/fsreq.h>
+#include <sys/iorequest.h>
 #include <sys/termios.h>
 #include <sys/interrupts.h>
 #include <sys/syscalls.h>
@@ -30,11 +30,6 @@
 #include <task.h>
 #include <machine/cheviot_hal.h>
 #include "trng_hw.h"
-
-
-/*
- */
-#define NMSG_BACKLOG 		1
 
 
 /*
@@ -57,9 +52,9 @@ void init(int argc, char *argv[]);
 int process_args(int argc, char *argv[]);
 int mount_device(void);
 
-void cmd_isatty(msgid_t msgid, struct fsreq *req);
-void cmd_read(msgid_t msgid, struct fsreq *req);
-void cmd_write(msgid_t msgid, struct fsreq *req);
+void cmd_isatty(msgid_t msgid, iorequest_t *req);
+void cmd_read(msgid_t msgid, iorequest_t *req);
+void cmd_write(msgid_t msgid, iorequest_t *req);
 void sigterm_handler(int signo);
 
 /*

@@ -1,5 +1,5 @@
-
-sbin_PROGRAMS = null
+driversdir = $(prefix)/system/drivers
+drivers_PROGRAMS = null
 
 null_SOURCES = globals.c init.c main.c
   

@@ -30,7 +30,7 @@
 /*
  *
  */
-void cmd_debug(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
+void cmd_debug(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
 {
   char *cmd = strtok(NULL, " ");
   
@@ -50,7 +50,7 @@ void cmd_debug(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
 /*
  *
  */
-void cmd_debug_registers(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
+void cmd_debug_registers(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
 {
   char tmp[64];
   uint32_t val;

@@ -266,7 +266,7 @@ int create_device_mount(void)
     return -1;
   }
   
-  unit[0].portid = createmsgport(unit[0].path, 0, &mnt_stat, NMSG_BACKLOG);
+  unit[0].portid = createmsgport(unit[0].path, 0, &mnt_stat);
 
   if (unit[0].portid < 0) {
     log_error("mounting device: %s failed\n", unit[0].path);
@@ -331,7 +331,7 @@ int create_partition_mounts(void)
 
       log_info("mount partition: %s", unit[nunits].path);
         
-      unit[nunits].portid = createmsgport(unit[nunits].path, 0, &mnt_stat, NMSG_BACKLOG);
+      unit[nunits].portid = createmsgport(unit[nunits].path, 0, &mnt_stat);
       
       if (unit[nunits].portid >= 0) {
         EV_SET(&ev, unit[nunits].portid, EVFILT_MSGPORT, EV_ADD | EV_ENABLE, 0, 0 ,&unit[nunits]);

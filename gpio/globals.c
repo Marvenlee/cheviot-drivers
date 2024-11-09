@@ -26,7 +26,7 @@
 #include <sys/stat.h>
 #include <sys/syscalls.h>
 #include <unistd.h>
-#include <sys/fsreq.h>
+#include <sys/iorequest.h>
 #include <limits.h>
 #include <machine/cheviot_hal.h>
 #include <sys/rpi_gpio.h>

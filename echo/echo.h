@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <sys/lists.h>
-#include <sys/fsreq.h>
+#include <sys/iorequest.h>
 #include <sys/termios.h>
 #include <sys/interrupts.h>
 #include <sys/syscalls.h>
@@ -30,11 +30,9 @@
 #include <machine/cheviot_hal.h>
 
 
-/*
- */
-#define NMSG_BACKLOG 		1
-
+// Constants
 #define TX_BUF_SZ       8192
+
 
 /*
  * Random driver Configuration settings
@@ -56,8 +54,8 @@ void init(int argc, char *argv[]);
 int process_args(int argc, char *argv[]);
 int mount_device(void);
 
-void cmd_read(msgid_t msgid, struct fsreq *req);
-void cmd_write(msgid_t msgid, struct fsreq *req);
+void cmd_read(msgid_t msgid, iorequest_t *req);
+void cmd_write(msgid_t msgid, iorequest_t *req);
 void sigterm_handler(int signo);
 
 #endif

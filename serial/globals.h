@@ -29,7 +29,7 @@
 #include <sys/stat.h>
 #include <sys/syscalls.h>
 #include <unistd.h>
-#include <sys/fsreq.h>
+#include <sys/iorequest.h>
 #include <sys/termios.h>
 #include "pl011.h"
 
@@ -69,8 +69,8 @@ extern Rendez rx_data_rendez;
 extern Rendez write_cmd_rendez;
 extern Rendez read_cmd_rendez;
 
-extern struct fsreq read_fsreq;
-extern struct fsreq write_fsreq;
+extern iorequest_t read_ioreq;
+extern iorequest_t write_ioreq;
 
 extern struct termios termios;
 

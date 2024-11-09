@@ -1,5 +1,5 @@
-
-sbin_PROGRAMS = mailbox
+driversdir = $(prefix)/system/drivers
+drivers_PROGRAMS = mailbox
 
 mailbox_SOURCES = \
   globals.c \

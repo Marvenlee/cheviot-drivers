@@ -1,5 +1,5 @@
-
-sbin_PROGRAMS = tty
+driversdir = $(prefix)/system/drivers
+drivers_PROGRAMS = tty
 
 tty_SOURCES = globals.c init.c main.c
   

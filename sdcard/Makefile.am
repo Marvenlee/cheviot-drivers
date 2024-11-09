@@ -1,5 +1,5 @@
-
-sbin_PROGRAMS = sdcard
+driversdir = $(prefix)/system/drivers
+drivers_PROGRAMS = sdcard
 
 sdcard_SOURCES = \
   debug.c \

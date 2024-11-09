@@ -37,7 +37,7 @@
  */
 int main(int argc, char *argv[])
 {
-  struct fsreq req;
+  iorequest_t req;
   int sc;
   struct kevent ev;
   int portid;
@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
  * TODO: Check for block alignment of offset and size
  * TODO: Check within range of unit 
  */
-void sdcard_read(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
+void sdcard_read(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
 {
   off64_t block_no;
   off64_t offset;
@@ -172,7 +172,7 @@ void sdcard_read(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
  * seem to cause an error where the controller is reinitialized by
  * calling sd)card_init.
  */
-void sdcard_write(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
+void sdcard_write(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
 {
   off64_t block_no;
   off64_t offset;
@@ -233,7 +233,7 @@ void sdcard_write(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
 /*
  *
  */ 
-void sdcard_sendmsg(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
+void sdcard_sendmsg(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
 {
   int sc;
   size_t req_sz;
@@ -282,7 +282,7 @@ void sdcard_sendmsg(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
 /*
  *
  */
-void cmd_help(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
+void cmd_help(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
 {
   strlcpy (resp_buf, "OK: help\n"
                      "help              - get command list\n"

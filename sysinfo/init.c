@@ -124,7 +124,7 @@ int mount_device(void)
   mnt_stat.st_size = 0;
   mnt_stat.st_blocks = 0;
   
-  portid = createmsgport(config.pathname, 0, &mnt_stat, NMSG_BACKLOG);
+  portid = createmsgport(config.pathname, 0, &mnt_stat);
   
   if (portid < 0) {
     log_info("failed to create msgport");

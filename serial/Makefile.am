@@ -1,5 +1,5 @@
-
-sbin_PROGRAMS = serial
+driversdir = $(prefix)/system/drivers
+drivers_PROGRAMS = serial
 
 serial_SOURCES = \
   globals.c \

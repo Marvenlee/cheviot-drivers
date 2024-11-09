@@ -1,5 +1,5 @@
-
-sbin_PROGRAMS = sysinfo
+driversdir = $(prefix)/system/drivers
+drivers_PROGRAMS = sysinfo
 
 sysinfo_SOURCES = globals.c init.c main.c
   

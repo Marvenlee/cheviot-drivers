@@ -26,7 +26,7 @@
 #include <sys/stat.h>
 #include <sys/syscalls.h>
 #include <unistd.h>
-#include <sys/fsreq.h>
+#include <sys/iorequest.h>
 #include <sys/debug.h>
 #include <sys/event.h>
 #include "sysinfo.h"
@@ -39,7 +39,7 @@ void main(int argc, char *argv[])
 {
   int sc;
   msgid_t msgid;
-  struct fsreq req;
+  iorequest_t req;
   int nevents;
   struct kevent ev;
  
@@ -88,7 +88,7 @@ void main(int argc, char *argv[])
 
 
 
-void cmd_sendmsg(int portid, msgid_t msgid, struct fsreq *req)
+void cmd_sendmsg(int portid, msgid_t msgid, iorequest_t *req)
 {
   int sc;
   size_t req_sz;
@@ -137,7 +137,7 @@ void cmd_sendmsg(int portid, msgid_t msgid, struct fsreq *req)
 /*
  *
  */
-void subcmd_help(int portid, msgid_t msgid, struct fsreq *req)
+void subcmd_help(int portid, msgid_t msgid, iorequest_t *req)
 {
   strlcpy (resp_buf, "OK: help\n\n"
                      "help    - get command list\n"
@@ -148,7 +148,7 @@ void subcmd_help(int portid, msgid_t msgid, struct fsreq *req)
 /*
  *
  */
-void subcmd_getinfo(int portid, msgid_t msgid, struct fsreq *req)
+void subcmd_getinfo(int portid, msgid_t msgid, iorequest_t *req)
 {
   strlcpy (resp_buf, "OK: getinfo\n\n"
                      "BOARD: raspberry pi\n"

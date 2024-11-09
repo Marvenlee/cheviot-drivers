@@ -29,7 +29,7 @@
 /*
  *
  */
-void cmd_profiling(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
+void cmd_profiling(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
 {
   char *cmd = strtok(NULL, " ");
   
@@ -55,7 +55,7 @@ void cmd_profiling(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
 /*
  *
  */
-void cmd_profiling_stats(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
+void cmd_profiling_stats(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
 {
   char tmp[32];
     
@@ -79,7 +79,7 @@ void cmd_profiling_stats(struct bdev_unit *unit, msgid_t msgid, struct fsreq *re
 /*
  *
  */
-void cmd_profiling_enable(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
+void cmd_profiling_enable(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
 {
   profiling = true;
   strlcpy(resp_buf, "OK: enabled\n", sizeof resp_buf);
@@ -89,7 +89,7 @@ void cmd_profiling_enable(struct bdev_unit *unit, msgid_t msgid, struct fsreq *r
 /*
  *
  */
-void cmd_profiling_disable(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
+void cmd_profiling_disable(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
 {
   profiling = false;
   strlcpy(resp_buf, "OK: disabled\n", sizeof resp_buf);
@@ -99,7 +99,7 @@ void cmd_profiling_disable(struct bdev_unit *unit, msgid_t msgid, struct fsreq *
 /*
  *
  */
-void cmd_profiling_reset(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req)
+void cmd_profiling_reset(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
 {
   profiling_read_counter = 0;
   profiling_write_counter = 0;

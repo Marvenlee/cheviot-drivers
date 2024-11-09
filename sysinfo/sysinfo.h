@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <sys/lists.h>
-#include <sys/fsreq.h>
+#include <sys/iorequest.h>
 #include <sys/termios.h>
 #include <sys/interrupts.h>
 #include <sys/syscalls.h>
@@ -30,9 +30,6 @@
 #include <machine/cheviot_hal.h>
 #include <string.h>
 
-/*
- */
-#define NMSG_BACKLOG 		1
 
 /*
  * Random driver Configuration settings
@@ -54,9 +51,9 @@ void init(int argc, char *argv[]);
 int process_args(int argc, char *argv[]);
 int mount_device(void);
 
-void cmd_sendmsg(int portid, msgid_t msgid, struct fsreq *req);
-void subcmd_help(int portid, msgid_t msgid, struct fsreq *req);
-void subcmd_getinfo(int portid, msgid_t msgid, struct fsreq *req);
+void cmd_sendmsg(int portid, msgid_t msgid, iorequest_t *req);
+void subcmd_help(int portid, msgid_t msgid, iorequest_t *req);
+void subcmd_getinfo(int portid, msgid_t msgid, iorequest_t *req);
 char *tokenize(char *line);
 void sigterm_handler(int signo);
 

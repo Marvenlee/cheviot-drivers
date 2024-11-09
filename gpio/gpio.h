@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <sys/lists.h>
-#include <sys/fsreq.h>
+#include <sys/iorequest.h>
 #include <sys/termios.h>
 #include <sys/interrupts.h>
 #include <sys/syscalls.h>
@@ -31,11 +31,10 @@
 #include <machine/cheviot_hal.h>
 #include <string.h>
 
-/*
- */
-#define NMSG_BACKLOG 		1
 
+// Constants
 #define MAX_GPIO_PIN    64      // TODO: Get this from device tree
+
 
 /*
  * Random driver Configuration settings
@@ -93,7 +92,7 @@ int mount_device(void);
 int get_fdt_device_info(void);
 int init_gpio_regs(void);
 
-void cmd_sendmsg(int portid, msgid_t msgid, struct fsreq *req);
+void cmd_sendmsg(int portid, msgid_t msgid, iorequest_t *req);
 int cmd_set_gpio(int portid, msgid_t msgid, struct msg_gpio_req *gpio_req);
 int cmd_get_gpio(int portid, msgid_t msgid, struct msg_gpio_req *gpio_req);
 void sigterm_handler(int signo);

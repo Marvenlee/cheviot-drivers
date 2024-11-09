@@ -29,7 +29,7 @@
 #include <sys/signal.h>
 #include <sys/stat.h>
 #include <sys/syscalls.h>
-#include <sys/fsreq.h>
+#include <sys/iorequest.h>
 #include <sys/debug.h>
 #include <sys/lists.h>
 #include <sys/event.h>
@@ -44,7 +44,7 @@
  */
 void main(int argc, char *argv[])
 {
-  struct fsreq req;
+  iorequest_t req;
   int sc;
   int nevents;
   msgid_t msgid;
@@ -100,7 +100,7 @@ void main(int argc, char *argv[])
 /*
  *
  */
-void cmd_read(msgid_t msgid, struct fsreq *req)
+void cmd_read(msgid_t msgid, iorequest_t *req)
 {
 	size_t nbytes;
 	size_t words;
@@ -125,7 +125,7 @@ void cmd_read(msgid_t msgid, struct fsreq *req)
 /*
  * 
  */
-void cmd_write(msgid_t msgid, struct fsreq *req)
+void cmd_write(msgid_t msgid, iorequest_t *req)
 {
   replymsg(portid, msgid, -EPERM, NULL, 0);
 }

@@ -26,7 +26,7 @@
 #include <sys/stat.h>
 #include <sys/syscalls.h>
 #include <unistd.h>
-#include <sys/fsreq.h>
+#include <sys/iorequest.h>
 #include <sys/debug.h>
 #include <sys/event.h>
 #include "null.h"
@@ -39,7 +39,7 @@ void main(int argc, char *argv[])
 {
   int sc;
   msgid_t msgid;
-  struct fsreq req;
+  iorequest_t req;
   int nevents;
   struct kevent ev;
   struct sigaction sact;

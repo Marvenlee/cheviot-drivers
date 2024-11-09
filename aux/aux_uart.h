@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <sys/lists.h>
-#include <sys/fsreq.h>
+#include <sys/iorequest.h>
 #include <sys/termios.h>
 #include <sys/interrupts.h>
 #include <sys/syscalls.h>
@@ -32,8 +32,6 @@
 
 
 // Constants
-#define NMSG_BACKLOG 		                  3   // 1 read, 1 write and 1 ioctl/termios/synchronous command
-
 #define AUX_KEVENT_TIMEOUT_SEC            0
 #define AUX_KEVENT_TIMEOUT_NSEC   200000000    // 0.2seconds
 
@@ -85,11 +83,11 @@ int mount_device(void);
 
 // main.c
 void cmd_abort(msgid_t msgid);
-void cmd_isatty(msgid_t msgid, struct fsreq *req);
-void cmd_read(msgid_t msgid, struct fsreq *req);
-void cmd_write(msgid_t msgid, struct fsreq *req);
-void cmd_tcsetattr(msgid_t msgid, struct fsreq *req);
-void cmd_tcgetattr(msgid_t msgid, struct fsreq *req);
+void cmd_isatty(msgid_t msgid, iorequest_t *req);
+void cmd_read(msgid_t msgid, iorequest_t *req);
+void cmd_write(msgid_t msgid, iorequest_t *req);
+void cmd_tcsetattr(msgid_t msgid, iorequest_t *req);
+void cmd_tcgetattr(msgid_t msgid, iorequest_t *req);
 
 void reader_task(void *arg);
 void writer_task(void *arg);

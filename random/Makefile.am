@@ -1,4 +1,5 @@
-sbin_PROGRAMS = random
+driversdir = $(prefix)/system/drivers
+drivers_PROGRAMS = random
 
 
 random_SOURCES = \

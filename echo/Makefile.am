@@ -1,5 +1,5 @@
-
-sbin_PROGRAMS = echo
+driversdir = $(prefix)/system/drivers
+drivers_PROGRAMS = echo
 
 echo_SOURCES = globals.c init.c main.c
   

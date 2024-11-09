@@ -24,16 +24,13 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <sys/fsreq.h>
+#include <sys/iorequest.h>
 #include <sys/syslimits.h>
 #include <sys/syscalls.h>
 
 
-/*
- */
- 
+// Constants
 #define SDCARD_TASK_PRIORITY  28        // Use SCHED_RR
-#define NMSG_BACKLOG 				  1
 #define BUF_SZ    			      4096      // Buffer size used to read and write
 
 #define EMMC_REGS_START_VADDR   (void *)0x60000000    // Map emmc regs above this address
@@ -116,23 +113,23 @@ int create_device_mount(void);
 int create_partition_mounts(void);
 
 // main.c
-void sdcard_read(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
-void sdcard_write(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
+void sdcard_read(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req);
+void sdcard_write(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req);
 
-void sdcard_sendmsg(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
-void cmd_help(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
+void sdcard_sendmsg(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req);
+void cmd_help(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req);
 void sigterm_handler(int signo);
 
 // profiling.c
-void cmd_profiling(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
-void cmd_profiling_stats(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
-void cmd_profiling_enable(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
-void cmd_profiling_disable(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
-void cmd_profiling_reset(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
+void cmd_profiling(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req);
+void cmd_profiling_stats(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req);
+void cmd_profiling_enable(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req);
+void cmd_profiling_disable(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req);
+void cmd_profiling_reset(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req);
 
 // debug.c
-void cmd_debug(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
-void cmd_debug_registers(struct bdev_unit *unit, msgid_t msgid, struct fsreq *req);
+void cmd_debug(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req);
+void cmd_debug_registers(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req);
 
 
 #endif

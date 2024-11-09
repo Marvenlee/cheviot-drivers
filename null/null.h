@@ -22,17 +22,13 @@
 #include <unistd.h>
 #include <limits.h>
 #include <sys/lists.h>
-#include <sys/fsreq.h>
+#include <sys/iorequest.h>
 #include <sys/termios.h>
 #include <sys/interrupts.h>
 #include <sys/syscalls.h>
 #include <sys/syslimits.h>
 #include <machine/cheviot_hal.h>
 
-
-/*
- */
-#define NMSG_BACKLOG 		1
 
 /*
  * Random driver Configuration settings

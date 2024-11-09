@@ -1,4 +1,5 @@
-sbin_PROGRAMS = aux
+driversdir = $(prefix)/system/drivers
+drivers_PROGRAMS = aux
 
 aux_SOURCES = \
   globals.c \

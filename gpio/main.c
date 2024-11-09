@@ -26,7 +26,7 @@
 #include <sys/stat.h>
 #include <sys/syscalls.h>
 #include <unistd.h>
-#include <sys/fsreq.h>
+#include <sys/iorequest.h>
 #include <sys/debug.h>
 #include <sys/event.h>
 #include <machine/cheviot_hal.h>
@@ -41,7 +41,7 @@ void main(int argc, char *argv[])
 {
   int sc;
   msgid_t msgid;
-  struct fsreq req;
+  iorequest_t req;
   int nevents;
   struct kevent ev;
   struct sigaction sact;
@@ -92,7 +92,7 @@ void main(int argc, char *argv[])
 /*
  *
  */
-void cmd_sendmsg(int portid, msgid_t msgid, struct fsreq *req)
+void cmd_sendmsg(int portid, msgid_t msgid, iorequest_t *req)
 {
   int sc;
   size_t req_sz;

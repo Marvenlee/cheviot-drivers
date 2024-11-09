@@ -23,7 +23,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <sys/lists.h>
-#include <sys/fsreq.h>
+#include <sys/iorequest.h>
 #include <sys/termios.h>
 #include <sys/interrupts.h>
 #include <sys/syscalls.h>
@@ -31,11 +31,9 @@
 #include <task.h>
 
 
-
-/*
- */
-#define NMSG_BACKLOG 			 3		// 1 read, 1 write, 1 ioctl/termios/synchronous function
+// Constants
 #define POLL_TIMEOUT 	100000
+
 
 /*
  * Configuration settings
@@ -56,11 +54,11 @@ struct Config
 
 
 // prototypes
-void cmd_isatty(msgid_t msgid, struct fsreq *req);
-void cmd_read(msgid_t msgid, struct fsreq *req);
-void cmd_write(msgid_t msgid, struct fsreq *req);
-void cmd_tcsetattr(msgid_t msgid, struct fsreq *req);
-void cmd_tcgetattr(msgid_t msgid, struct fsreq *req);
+void cmd_isatty(msgid_t msgid, iorequest_t *req);
+void cmd_read(msgid_t msgid, iorequest_t *req);
+void cmd_write(msgid_t msgid, iorequest_t *req);
+void cmd_tcsetattr(msgid_t msgid, iorequest_t *req);
+void cmd_tcgetattr(msgid_t msgid, iorequest_t *req);
 
 void init(int argc, char *argv[]);
 int process_args(int argc, char *argv[]);

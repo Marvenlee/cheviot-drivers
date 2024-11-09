@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <sys/lists.h>
-#include <sys/fsreq.h>
+#include <sys/iorequest.h>
 #include <sys/termios.h>
 #include <sys/interrupts.h>
 #include <sys/syscalls.h>
@@ -32,14 +32,12 @@
 #include <sys/rpi_mailbox.h>
 
 
-/*
- */
-#define NMSG_BACKLOG 		1
-
+// Constants
 #define PERIPHERAL_BASE       0xFE000000                        /* Peripheral ARM phyiscal address */
 #define MBOX_BASE             (PERIPHERAL_BASE + 0x0000B880)    /* VideoCore Mailbox base */
 #define MBOX_BASE_PAGE        (PERIPHERAL_BASE + 0x0000B000)    /* Page-aligned base */
 #define MBOX_BASE_OFFSET      0x880                             /* Offset within page aligned base */
+
 
 /*
  * Random driver Configuration settings
@@ -63,7 +61,7 @@ int mount_device(void);
 int get_fdt_device_info(void);
 int init_mailbox(void);
 
-void cmd_sendmsg(int portid, msgid_t msgid, struct fsreq *req);
+void cmd_sendmsg(int portid, msgid_t msgid, iorequest_t *req);
 
 int post_mailbox(uint32_t tag, void *request, int req_sz, void *response, int response_sz);
 

@@ -22,16 +22,13 @@
 #include <unistd.h>
 #include <limits.h>
 #include <sys/lists.h>
-#include <sys/fsreq.h>
+#include <sys/iorequest.h>
 #include <sys/termios.h>
 #include <sys/interrupts.h>
 #include <sys/syscalls.h>
 #include <sys/syslimits.h>
 #include <machine/cheviot_hal.h>
 
-
-// Number of concurrent connections
-#define NMSG_BACKLOG 		1
 
 // Special case /dev/tty major/minor number
 #define DEV_T_DEV_TTY   0x0500

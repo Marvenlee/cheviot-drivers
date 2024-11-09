@@ -1,5 +1,5 @@
-
-sbin_PROGRAMS = gpio
+driversdir = $(prefix)/system/drivers
+drivers_PROGRAMS = gpio
 
 gpio_SOURCES = \
   globals.c \

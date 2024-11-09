@@ -30,7 +30,7 @@
 #include <sys/signal.h>
 #include <sys/stat.h>
 #include <sys/syscalls.h>
-#include <sys/fsreq.h>
+#include <sys/iorequest.h>
 #include <sys/debug.h>
 #include <sys/lists.h>
 #include <sys/event.h>
@@ -39,7 +39,7 @@
 #include "globals.h"
 
 
-void cmd_write_new(msgid_t msgid, struct fsreq *req);
+void cmd_write_new(msgid_t msgid, iorequest_t *req);
 
 
 /* @brief   Main task of the serial driver for Pi's mini-uart
@@ -58,7 +58,7 @@ void cmd_write_new(msgid_t msgid, struct fsreq *req);
  */
 void taskmain(int argc, char *argv[])
 {
-  struct fsreq req;
+  iorequest_t req;
   int sc;
   int nevents;
   msgid_t msgid;
@@ -164,7 +164,7 @@ void taskmain(int argc, char *argv[])
 /*
  *
  */
-void cmd_isatty (msgid_t msgid, struct fsreq *fsreq)
+void cmd_isatty (msgid_t msgid, iorequest_t *req)
 {
   replymsg(portid, msgid, 1, NULL, 0);
 }
@@ -173,7 +173,7 @@ void cmd_isatty (msgid_t msgid, struct fsreq *fsreq)
 /*
  *
  */
-void cmd_tcgetattr(msgid_t msgid, struct fsreq *fsreq)
+void cmd_tcgetattr(msgid_t msgid, iorequest_t *req)
 {	
   writemsg(portid, msgid, &termios, sizeof termios, 0);
   replymsg(portid, msgid, 0, NULL, 0);
@@ -183,7 +183,7 @@ void cmd_tcgetattr(msgid_t msgid, struct fsreq *fsreq)
 /*
  * FIX: add actions to specify when/what should be modified/flushed.
  */ 
-void cmd_tcsetattr(msgid_t msgid, struct fsreq *fsreq)
+void cmd_tcsetattr(msgid_t msgid, iorequest_t *req)
 {
   log_info("**** tcsetattr ****");
  
@@ -231,11 +231,11 @@ void cmd_abort(msgid_t msgid)
  *
  * Only 1 reader and only 1 writer and only 1 tc/isatty cmd
  */
-void cmd_read(msgid_t msgid, struct fsreq *req)
+void cmd_read(msgid_t msgid, iorequest_t *req)
 {
   read_pending = true;
   read_msgid = msgid;
-  memcpy (&read_fsreq, req, sizeof read_fsreq);
+  memcpy (&read_ioreq, req, sizeof read_ioreq);
   taskwakeup(&read_cmd_rendez);
 }
 
@@ -243,11 +243,11 @@ void cmd_read(msgid_t msgid, struct fsreq *req)
 /*
  * 
  */
-void cmd_write(msgid_t msgid, struct fsreq *req)
+void cmd_write(msgid_t msgid, iorequest_t *req)
 {
   write_pending = true;
   write_msgid = msgid;
-  memcpy (&write_fsreq, req, sizeof write_fsreq);
+  memcpy (&write_ioreq, req, sizeof write_ioreq);
   taskwakeup(&write_cmd_rendez);
 }
 
@@ -289,9 +289,9 @@ void reader_task (void *arg)
     
       // Could we remove line_length calculation each time ?
       line_length = get_line_length();
-      remaining = (line_length < read_fsreq.args.read.sz) ? line_length : read_fsreq.args.read.sz;
+      remaining = (line_length < read_ioreq.args.read.sz) ? line_length : read_ioreq.args.read.sz;
     } else {
-      remaining = (rx_sz < read_fsreq.args.read.sz) ? rx_sz : read_fsreq.args.read.sz;
+      remaining = (rx_sz < read_ioreq.args.read.sz) ? rx_sz : read_ioreq.args.read.sz;
     }
 
     nbytes_read = 0;
@@ -355,7 +355,7 @@ void writer_task (void *arg)
     }
 
     nbytes_written = 0;    
-    remaining = (tx_free_sz < write_fsreq.args.write.sz) ? tx_free_sz : write_fsreq.args.write.sz;
+    remaining = (tx_free_sz < write_ioreq.args.write.sz) ? tx_free_sz : write_ioreq.args.write.sz;
   
     while(remaining > 0)
     {  
