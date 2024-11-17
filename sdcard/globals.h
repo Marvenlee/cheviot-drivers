@@ -39,16 +39,10 @@ extern struct bdev_unit unit[5];
 extern char req_buf[ARG_MAX];
 extern char resp_buf[ARG_MAX];
 
-extern bool profiling;
-extern struct profiling_samples profiling_reads;
-extern struct profiling_samples profiling_writes;
-extern struct profiling_samples profiling_kevents;
-extern int profiling_read_counter;
-extern int profiling_write_counter;
-extern struct timespec profile_read_start_ts;
-extern struct timespec profile_read_end_ts;
-extern struct timespec profile_write_start_ts;
-extern struct timespec profile_write_end_ts;
+profiling_extern_ts(read);
+profiling_extern_ts(write);
+profiling_extern_counter(read);
+profiling_extern_counter(write);
 
 extern bool shutdown;
 

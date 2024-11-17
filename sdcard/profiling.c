@@ -64,14 +64,14 @@ void cmd_profiling_stats(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req
             "writes: %d\n"
             "read time  avg:%d, min: %d, max: %d (us)\n"
             "write time avg:%d, min: %d, max: %d (us)\n",
-            profiling_read_counter,
-            profiling_write_counter,
-            profiling_reads.avg,
-            profiling_reads.min,
-            profiling_reads.max,
-            profiling_writes.avg,
-            profiling_writes.min,           
-            profiling_writes.max
+            profiling_count_get(read),
+            profiling_count_get(write),
+            profiling_ts_avg(read),
+            profiling_ts_min(read),
+            profiling_ts_max(read),
+            profiling_ts_avg(write),
+            profiling_ts_min(write),
+            profiling_ts_max(write)
             );            
 }
 
@@ -81,7 +81,7 @@ void cmd_profiling_stats(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req
  */
 void cmd_profiling_enable(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
 {
-  profiling = true;
+  profiling_enable(true);
   strlcpy(resp_buf, "OK: enabled\n", sizeof resp_buf);
 }
 
@@ -91,7 +91,7 @@ void cmd_profiling_enable(struct bdev_unit *unit, msgid_t msgid, iorequest_t *re
  */
 void cmd_profiling_disable(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
 {
-  profiling = false;
+  profiling_enable(false);
   strlcpy(resp_buf, "OK: disabled\n", sizeof resp_buf);
 }
 
@@ -101,11 +101,11 @@ void cmd_profiling_disable(struct bdev_unit *unit, msgid_t msgid, iorequest_t *r
  */
 void cmd_profiling_reset(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
 {
-  profiling_read_counter = 0;
-  profiling_write_counter = 0;
+  profiling_count_reset(read);
+  profiling_count_reset(write);
 
-  memset(&profiling_reads, 0, sizeof profiling_reads);
-  memset(&profiling_writes, 0, sizeof profiling_writes);
+  profiling_ts_reset(read);
+  profiling_ts_reset(write);
 
   strlcpy(resp_buf, "OK: reset\n", sizeof resp_buf);
 }

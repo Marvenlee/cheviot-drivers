@@ -121,9 +121,7 @@ void sdcard_read(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
   size_t block_read_sz;
   int sc;
 
-  if (profiling) {
-    clock_gettime(CLOCK_MONOTONIC_RAW, &profile_read_start_ts);
-  }
+  profiling_begin(read);
 
   xfered = 0;
   offset = req->args.read.offset;
@@ -151,11 +149,8 @@ void sdcard_read(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
 
   replymsg(unit->portid, msgid, xfered, NULL, 0);
 
-  if (profiling) {
-    clock_gettime(CLOCK_MONOTONIC_RAW, &profile_read_end_ts);
-    profiling_microsecs(&profiling_reads, &profile_read_start_ts, &profile_read_end_ts);
-    profiling_read_counter++;
-  }
+  profiling_end_usec(read);
+  profiling_count(read);
 }
 
 
@@ -172,6 +167,7 @@ void sdcard_read(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
  * seem to cause an error where the controller is reinitialized by
  * calling sd)card_init.
  */
+ 
 void sdcard_write(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
 {
   off64_t block_no;
@@ -184,9 +180,7 @@ void sdcard_write(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
   size_t block_write_sz;
   int sc;
 
-  if (profiling) {
-    clock_gettime(CLOCK_MONOTONIC_RAW, &profile_write_start_ts);  
-  }
+  profiling_begin(write);
 
   xfered = 0;
   offset = req->args.write.offset;
@@ -222,11 +216,8 @@ void sdcard_write(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
 
   replymsg(unit->portid, msgid, xfered, NULL, 0);
 
-  if (profiling) {    
-    clock_gettime(CLOCK_MONOTONIC_RAW, &profile_write_end_ts);  
-    profiling_microsecs(&profiling_writes, &profile_write_start_ts, &profile_write_end_ts);
-    profiling_write_counter++;    
-  }
+  profiling_end_usec(write);
+  profiling_count(write);
 }
 
 

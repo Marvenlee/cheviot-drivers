@@ -39,17 +39,10 @@ char req_buf[ARG_MAX];
 char resp_buf[ARG_MAX];
 
 // Profiling
-bool profiling = true;
-struct profiling_samples profiling_reads;
-
-struct profiling_samples profiling_writes;
-struct profiling_samples profiling_kevents;
-int profiling_read_counter;
-int profiling_write_counter;
-struct timespec profile_read_start_ts;
-struct timespec profile_read_end_ts;
-struct timespec profile_write_start_ts;
-struct timespec profile_write_end_ts;
+profiling_define_ts(read, 128);
+profiling_define_ts(write, 128);
+profiling_define_counter(read);
+profiling_define_counter(write);
 
 bool shutdown;
 
