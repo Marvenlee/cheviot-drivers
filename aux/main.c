@@ -39,10 +39,8 @@
 #include "globals.h"
 
 
-void cmd_write_new(msgid_t msgid, iorequest_t *req);
 
-
-/* @brief   Main task of the serial driver for Pi's mini-uart
+/* @brief   Main task of the driver for the Raspberry Pi's Aux-UART.
  *
  * Libtask coroutines are used for concurrency in the serial driver
  * We follow Djikstra's Secretaries and Directors pattern of 
@@ -55,6 +53,9 @@ void cmd_write_new(msgid_t msgid, iorequest_t *req);
  * run. Once that returns 0, indicating no other tasks are in a runnable
  * state then this main task (secretary) goes back to waiting for
  * incoming events.
+ *
+ * See EWD310 - Hierarchical Ordering of Sequential Processes at the
+ * Djikstra archive.
  */
 void taskmain(int argc, char *argv[])
 {
