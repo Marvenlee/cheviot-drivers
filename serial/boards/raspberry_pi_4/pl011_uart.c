@@ -26,6 +26,7 @@
 #include <sys/debug.h>
 #include <sys/lists.h>
 #include <sys/event.h>
+#include <sys/mman.h>
 #include "pl011.h"
 #include "globals.h"
 #include <machine/cheviot_hal.h>
@@ -46,17 +47,17 @@ int pl011_uart_configure(void)
 {
   uint32_t tmp;
   
-  pl011_regs = virtualallocphys((void *)0x50000000, 4096,
-                          PROT_READ | PROT_WRITE | CACHE_UNCACHEABLE,
-                          (void *)(PL011_BASE));  
-  if (pl011_regs == NULL) {
+    pl011_regs = mmap((void *)0x50000000, 4096,
+                          PROT_READ | PROT_WRITE, MAP_PHYS | CACHE_UNCACHEABLE,
+                          -1, (void *)(PL011_BASE));  
+  if (pl011_regs == MAP_FAILED) {
     return -ENOMEM;
   }  
   
-  gpio_regs = virtualallocphys((void *)0x50010000, 4096, 
-                          PROT_READ | PROT_WRITE | CACHE_UNCACHEABLE,
-                          (void *)(GPIO_BASE));  
-  if (gpio_regs == NULL) {
+  gpio_regs = mmap((void *)0x50010000, 4096, 
+                          PROT_READ | PROT_WRITE, MAP_PHYS | CACHE_UNCACHEABLE,
+                          -1, (void *)(GPIO_BASE));  
+  if (gpio_regs == MAP_FAILED) {
     return -ENOMEM;
   }
 

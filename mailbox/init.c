@@ -36,6 +36,7 @@
 #include <fdthelper.h>
 #include <sys/param.h>
 #include <machine/param.h>
+#include <sys/mman.h>
 #include <libfdt.h>
 #include "mailbox.h"
 #include "globals.h"
@@ -209,20 +210,22 @@ int init_mailbox(void)
   mailbox_phys_page = (void *)rounddown((uintptr_t)mailbox_phys_base, PAGE_SIZE);
 
   // map mailbuffer registers
-  mailbox_base = virtualallocphys((void *)0x60000000, 4096, PROT_READWRITE, mailbox_phys_page);
 
-  if (mailbox_base == NULL) {
+  mailbox_base = mmap((void *)MMAP_START_BASE, 4096, PROT_READ | PROT_WRITE, CACHE_UNCACHEABLE | MAP_PHYS, -1, (off_t)mailbox_phys_base);
+
+  if (mailbox_base == MAP_FAILED) {
     return -1;
   }
+
   hal_set_mbox_base((void *)mailbox_base + MBOX_BASE_OFFSET);
 
 #else
-  mailbox_base = map_phys_mem(mailbox_base_page, mailbox_regs_size, PROT_READWRITE, (void *)0x60000000);
+  mailbox_base = map_phys_mem(mailbox_base_page, mailbox_regs_size, PROT_READWRITE, CACHE_UNCACHEABLE, (void *)MMAP_START_BASE);
 #endif
   
-  mailbuffer = virtualalloc((void *)0x70000000, 4096, PROT_READWRITE);
+  mailbuffer = mmap((void *)MMAP_START_BASE2, 4096, PROT_READ | PROT_WRITE, CACHE_UNCACHEABLE | MAP_PHYS, -1, 0);
 
-  if (mailbuffer == NULL) {
+  if (mailbuffer == MAP_FAILED) {
     return -1;
   }
 

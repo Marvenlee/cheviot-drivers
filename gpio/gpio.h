@@ -33,7 +33,8 @@
 
 
 // Constants
-#define MAX_GPIO_PIN    64      // TODO: Get this from device tree
+#define MAX_GPIO_PIN        64      // TODO: Get this from device tree
+#define MMAP_START_BASE     0x60000000
 
 
 /*

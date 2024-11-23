@@ -32,7 +32,7 @@
 #include <machine/param.h>
 #include <libfdt.h>
 #include "trng_hw.h"
-
+#include <sys/mman.h>
 
 /*
  * Memory mapped IO locations
@@ -57,7 +57,7 @@ int trng_hw_init(void)
   }
 
   trng_regs = map_phys_mem(trng_phys_base, trng_reg_size,
-                           PROT_READ | PROT_WRITE | CACHE_UNCACHEABLE, 
+                           PROT_READ | PROT_WRITE, CACHE_UNCACHEABLE, 
                            TRNG_REGS_START_VADDR);
 
   if (trng_regs == NULL) {

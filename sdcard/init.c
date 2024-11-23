@@ -22,6 +22,7 @@
 #include <sys/rpi_gpio.h>
 #include <fdthelper.h>
 #include <sys/param.h>
+#include <sys/mman.h>
 #include <machine/param.h>
 #include <libfdt.h>
 #include <sys/sched.h>
@@ -77,9 +78,9 @@ void init(int argc, char *argv[])
     exit(-1);
   }
 
-  buf = virtualalloc(NULL, BUF_SZ, PROT_READ | PROT_WRITE);
+  buf = mmap((void *)MMAP_START_BASE, BUF_SZ, PROT_READ | PROT_WRITE, 0, -1, 0);
 
-  if (buf == NULL) {
+  if (buf == MAP_FAILED) {
     log_error("failed to create 4k buffer");
     exit(-1);
   }
@@ -171,7 +172,7 @@ int map_io_registers(void)
   }
 
   emmc_base = (uintptr_t)map_phys_mem(emmc_phys_base, emmc_reg_size,
-                           PROT_READ | PROT_WRITE | CACHE_UNCACHEABLE, 
+                           PROT_READ | PROT_WRITE, CACHE_UNCACHEABLE, 
                            EMMC_REGS_START_VADDR);
 
 

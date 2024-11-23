@@ -31,6 +31,7 @@
 
 // Constants
 #define SDCARD_TASK_PRIORITY  28        // Use SCHED_RR
+#define MMAP_START_BASE       0x60000000
 #define BUF_SZ    			      4096      // Buffer size used to read and write
 
 #define EMMC_REGS_START_VADDR   (void *)0x60000000    // Map emmc regs above this address

@@ -37,7 +37,8 @@
 #define MBOX_BASE             (PERIPHERAL_BASE + 0x0000B880)    /* VideoCore Mailbox base */
 #define MBOX_BASE_PAGE        (PERIPHERAL_BASE + 0x0000B000)    /* Page-aligned base */
 #define MBOX_BASE_OFFSET      0x880                             /* Offset within page aligned base */
-
+#define MMAP_START_BASE       0x60000000
+#define MMAP_START_BASE2      0x70000000
 
 /*
  * Random driver Configuration settings

@@ -36,6 +36,7 @@
 #include <sys/rpi_gpio.h>
 #include <fdthelper.h>
 #include <sys/param.h>
+#include <sys/mman.h>
 #include <machine/param.h>
 #include <libfdt.h>
 #include "gpio.h"
@@ -209,9 +210,9 @@ int get_fdt_device_info(void)
  */
 int init_gpio_regs(void)
 {    
-  gpio_regs = virtualallocphys((void *)0x60000000, 4096, PROT_READWRITE, gpio_phys_base);
+  gpio_regs = mmap((void *)MMAP_START_BASE, 4096, PROT_READ | PROT_WRITE, MAP_PHYS, -1, (off_t)gpio_phys_base);
   
-  if (gpio_regs == NULL) {
+  if (gpio_regs == MAP_FAILED) {
     return -1;
   }
   

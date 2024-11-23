@@ -30,6 +30,7 @@
 #include <unistd.h>
 #include <sys/debug.h>
 #include <sys/syscalls.h>
+#include <sys/mman.h>
 #include <sys/event.h>
 #include <sys/panic.h>
 #include "aux_uart.h"
@@ -59,7 +60,7 @@
 int aux_uart_configure(int baud)
 {
   aux_regs = map_phys_mem(aux_phys_base, aux_reg_size,
-                          PROT_READ | PROT_WRITE | CACHE_UNCACHEABLE, 
+                          PROT_READ | PROT_WRITE, CACHE_UNCACHEABLE,
                           AUX_REGS_START_VADDR);
 
   if (aux_regs == NULL) {
