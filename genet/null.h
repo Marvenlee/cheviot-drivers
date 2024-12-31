@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef _SYSINFO_H
-#define _SYSINFO_H
+#ifndef NULL_H
+#define NULL_H
 
 #include <stdint.h>
 #include <stddef.h>
@@ -28,7 +28,6 @@
 #include <sys/syscalls.h>
 #include <sys/syslimits.h>
 #include <machine/cheviot_hal.h>
-#include <string.h>
 
 
 /*
@@ -51,10 +50,6 @@ void init(int argc, char *argv[]);
 int process_args(int argc, char *argv[]);
 int mount_device(void);
 
-void cmd_sendmsg(int portid, msgid_t msgid, iorequest_t *req);
-void subcmd_help(int portid, msgid_t msgid, iorequest_t *req);
-void subcmd_getinfo(int portid, msgid_t msgid, iorequest_t *req);
-char *tokenize(char *line);
 void sigterm_handler(int signo);
 
 #endif

@@ -32,8 +32,8 @@
 #include <sys/syscalls.h>
 #include <sys/event.h>
 #include <sys/panic.h>
-#include "sysinfo.h"
 #include "globals.h"
+#include "null.h"
 
 
 /*
@@ -127,7 +127,6 @@ int mount_device(void)
   portid = createmsgport(config.pathname, 0, &mnt_stat);
   
   if (portid < 0) {
-    log_info("failed to create msgport");
     return -1;
   }
 

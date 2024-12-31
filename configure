@@ -4384,7 +4384,7 @@ else
 fi
 
 
-ac_config_files="$ac_config_files Makefile tty/Makefile aux/Makefile null/Makefile random/Makefile sdcard/Makefile sysinfo/Makefile gpio/Makefile mailbox/Makefile echo/Makefile"
+ac_config_files="$ac_config_files Makefile aux/Makefile genet/Makefile gpio/Makefile mailbox/Makefile null/Makefile random/Makefile sdcard/Makefile tty/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -5137,15 +5137,14 @@ do
   case $ac_config_target in
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
-    "tty/Makefile") CONFIG_FILES="$CONFIG_FILES tty/Makefile" ;;
     "aux/Makefile") CONFIG_FILES="$CONFIG_FILES aux/Makefile" ;;
+    "genet/Makefile") CONFIG_FILES="$CONFIG_FILES genet/Makefile" ;;
+    "gpio/Makefile") CONFIG_FILES="$CONFIG_FILES gpio/Makefile" ;;
+    "mailbox/Makefile") CONFIG_FILES="$CONFIG_FILES mailbox/Makefile" ;;
     "null/Makefile") CONFIG_FILES="$CONFIG_FILES null/Makefile" ;;
     "random/Makefile") CONFIG_FILES="$CONFIG_FILES random/Makefile" ;;
     "sdcard/Makefile") CONFIG_FILES="$CONFIG_FILES sdcard/Makefile" ;;
-    "sysinfo/Makefile") CONFIG_FILES="$CONFIG_FILES sysinfo/Makefile" ;;
-    "gpio/Makefile") CONFIG_FILES="$CONFIG_FILES gpio/Makefile" ;;
-    "mailbox/Makefile") CONFIG_FILES="$CONFIG_FILES mailbox/Makefile" ;;
-    "echo/Makefile") CONFIG_FILES="$CONFIG_FILES echo/Makefile" ;;
+    "tty/Makefile") CONFIG_FILES="$CONFIG_FILES tty/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

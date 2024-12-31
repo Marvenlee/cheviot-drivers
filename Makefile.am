@@ -19,5 +19,12 @@ else
 endif
 endif
 
-SUBDIRS = tty aux null random sdcard sysinfo gpio mailbox echo
+SUBDIRS = aux \
+          genet \
+          gpio \
+          mailbox \
+          null \
+          random \
+          sdcard \
+          tty
 

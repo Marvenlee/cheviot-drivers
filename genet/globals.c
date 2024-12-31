@@ -27,8 +27,7 @@
 #include <sys/syscalls.h>
 #include <unistd.h>
 #include <sys/iorequest.h>
-#include <limits.h>
-#include "sysinfo.h"
+#include "null.h"
 
 
 int portid;
@@ -36,9 +35,8 @@ int kq;
 
 struct Config config;
 
-char req_buf[ARG_MAX];
-char resp_buf[ARG_MAX];
-
 bool shutdown;
+
+
 
 

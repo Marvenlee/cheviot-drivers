@@ -12,15 +12,14 @@ AM_CONDITIONAL([BOARD_RASPBERRY_PI_4], [test "$BOARD" = "raspberrypi4"])
 
 AC_CONFIG_FILES([
   Makefile
-  tty/Makefile
   aux/Makefile
+  genet/Makefile
+  gpio/Makefile
+  mailbox/Makefile
   null/Makefile  
   random/Makefile  
   sdcard/Makefile
-  sysinfo/Makefile
-  gpio/Makefile
-  mailbox/Makefile
-  echo/Makefile
+  tty/Makefile
   ])
   
 AC_OUTPUT

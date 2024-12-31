@@ -86,8 +86,8 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-drivers_PROGRAMS = sysinfo$(EXEEXT)
-subdir = sysinfo
+drivers_PROGRAMS = genet$(EXEEXT)
+subdir = genet
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -98,9 +98,9 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(driversdir)"
 PROGRAMS = $(drivers_PROGRAMS)
-am_sysinfo_OBJECTS = globals.$(OBJEXT) init.$(OBJEXT) main.$(OBJEXT)
-sysinfo_OBJECTS = $(am_sysinfo_OBJECTS)
-sysinfo_LDADD = $(LDADD)
+am_genet_OBJECTS = globals.$(OBJEXT) init.$(OBJEXT) main.$(OBJEXT)
+genet_OBJECTS = $(am_genet_OBJECTS)
+genet_LDADD = $(LDADD)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -131,8 +131,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(sysinfo_SOURCES)
-DIST_SOURCES = $(sysinfo_SOURCES)
+SOURCES = $(genet_SOURCES)
+DIST_SOURCES = $(genet_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -250,7 +250,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 driversdir = $(prefix)/system/drivers
-sysinfo_SOURCES = globals.c init.c main.c
+genet_SOURCES = globals.c init.c main.c
 AM_CFLAGS = -O2 -std=c99 -g0
 AM_CPPFLAGS = -I$(srcdir) 
 AM_CCASFLAGS = -r -I$(srcdir) 
@@ -267,9 +267,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign sysinfo/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign genet/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign sysinfo/Makefile
+	  $(AUTOMAKE) --foreign genet/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
@@ -330,9 +330,9 @@ uninstall-driversPROGRAMS:
 clean-driversPROGRAMS:
 	-test -z "$(drivers_PROGRAMS)" || rm -f $(drivers_PROGRAMS)
 
-sysinfo$(EXEEXT): $(sysinfo_OBJECTS) $(sysinfo_DEPENDENCIES) $(EXTRA_sysinfo_DEPENDENCIES) 
-	@rm -f sysinfo$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(sysinfo_OBJECTS) $(sysinfo_LDADD) $(LIBS)
+genet$(EXEEXT): $(genet_OBJECTS) $(genet_DEPENDENCIES) $(EXTRA_genet_DEPENDENCIES) 
+	@rm -f genet$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(genet_OBJECTS) $(genet_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
