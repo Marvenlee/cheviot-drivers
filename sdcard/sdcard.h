@@ -117,7 +117,7 @@ int create_partition_mounts(void);
 void sdcard_read(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req);
 void sdcard_write(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req);
 
-void sdcard_sendmsg(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req);
+void sdcard_sendio(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req);
 void cmd_help(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req);
 void sigterm_handler(int signo);
 

@@ -72,8 +72,8 @@ int main(int argc, char *argv[])
             sdcard_write(unit, msgid, &req);
             break;
 
-          case CMD_SENDMSG:
-            sdcard_sendmsg(unit, msgid, &req);
+          case CMD_SENDIO:
+            sdcard_sendio(unit, msgid, &req);
             break;
 
           default:
@@ -224,7 +224,7 @@ void sdcard_write(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
 /*
  *
  */ 
-void sdcard_sendmsg(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
+void sdcard_sendio(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
 {
   int sc;
   size_t req_sz;
@@ -233,9 +233,9 @@ void sdcard_sendmsg(struct bdev_unit *unit, msgid_t msgid, iorequest_t *req)
   int subclass;
   char *cmd;
   
-  subclass = req->args.sendmsg.subclass;
-  req_sz = req->args.sendmsg.ssize;  
-  max_resp_sz = req->args.sendmsg.rsize;  
+  subclass = req->args.sendio.subclass;
+  req_sz = req->args.sendio.ssize;  
+  max_resp_sz = req->args.sendio.rsize;  
 
   if (req_sz > sizeof req_buf) {
     replymsg(unit->portid, msgid, -E2BIG, NULL, 0);

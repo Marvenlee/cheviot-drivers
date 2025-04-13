@@ -62,7 +62,7 @@ int mount_device(void);
 int get_fdt_device_info(void);
 int init_mailbox(void);
 
-void cmd_sendmsg(int portid, msgid_t msgid, iorequest_t *req);
+void cmd_sendio(int portid, msgid_t msgid, iorequest_t *req);
 
 int post_mailbox(uint32_t tag, void *request, int req_sz, void *response, int response_sz);
 

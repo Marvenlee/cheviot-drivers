@@ -13,7 +13,7 @@ user-mode processes. The Virtual File System Switch within the kernel converts
 standard system calls such as open(), read(), write() and lseek() into messages
 that are passed to device driver via the kernel's inter-process communication mechanisms.
 
-The gpio, mailbox and sysinfo drivers use the sendmsg() system call to perform custom
+The gpio, mailbox and sysinfo drivers use the sendio() system call to perform custom
 RPC commands.  For the gpio and mailbox drivers, the message format is binary.  For the
 sysinfo driver, the message format is plain text.
 
@@ -26,7 +26,7 @@ access via GPIO14 (TX, pin 8) and GPIO 16 (Rx, pin 10) on the Raspberry Pi's GPI
 
 ## gpio
 
-Driver to allow toggling of GPIOs through sendmsg commands.  The configuration of
+Driver to allow toggling of GPIOs through sendio commands.  The configuration of
 GPIOs should be done either by the bootloader or this driver.  This will be moved to
 an privileged ring when we move to implementing multiple protection rings.
 

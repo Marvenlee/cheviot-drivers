@@ -33,7 +33,7 @@ struct Config config;
 int nunits;                     // number of discovered units and partitions.
 struct bdev_unit unit[5];      // Maximum 5 units, e.g. sda, sda1, sda2, sda3 and sda5
 
-// sendmsg
+// sendio
 
 char req_buf[ARG_MAX];
 char resp_buf[ARG_MAX];
